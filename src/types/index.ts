@@ -32,7 +32,7 @@ export interface Turma {
   series: string;
   idSeries: string;
   qtd: number;
-  name?: string;
+  disciplina: string;
   color?: string;
   image?: string;
   lastModifiedAt?: number;

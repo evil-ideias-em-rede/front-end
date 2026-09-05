@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Book,
+  Bookmark,
   Building2,
   CheckCircle2,
   Hash,
@@ -53,7 +55,7 @@ export const CriarTurmaModal: React.FC<CriarTurmaModalProps> = ({
   const [series, setSeries] = useState(SERIES[0]);
   const [idLabel, setIdLabel] = useState('A');
   const [students, setStudents] = useState(1);
-  const [name, setName] = useState('');
+  const [disciplina, setDisciplina] = useState('');
   const [color, setColor] = useState(TURMA_COLORS[0]);
   const [image, setImage] = useState('');
   const [saved, setSaved] = useState(false);
@@ -74,7 +76,7 @@ export const CriarTurmaModal: React.FC<CriarTurmaModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!school.trim() || !series.trim()) return;
+    if (!school.trim() || !series.trim() || !disciplina.trim()) return;
 
     setSaved(true);
 
@@ -85,7 +87,7 @@ export const CriarTurmaModal: React.FC<CriarTurmaModalProps> = ({
         series,
         idSeries: idLabel.trim() || 'A',
         qtd: Math.max(0, Number(students) || 0),
-        name: name.trim() || undefined,
+        disciplina: disciplina.trim(),
         color,
         image: image || undefined,
       });
@@ -107,8 +109,7 @@ export const CriarTurmaModal: React.FC<CriarTurmaModalProps> = ({
           </h3>
 
           <p className="text-xs font-semibold text-stone-500">
-            {series} {idLabel}
-            {name ? ` • ${name}` : ''} — {school}
+            {series} - {disciplina} — {school}
           </p>
         </div>
       ) : (
@@ -251,16 +252,16 @@ export const CriarTurmaModal: React.FC<CriarTurmaModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: THEME_COLORS.textDark }}>
-                Nome (opcional)
+                Disciplina
               </label>
               <div className="relative">
-                <Users className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
+                <Book className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
                 <input
                   type="text"
-                  value={name}
+                  value={disciplina}
                   maxLength={40}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Turma A - Manhã"
+                  onChange={(e) => setDisciplina(e.target.value)}
+                  placeholder="Ex: Português"
                   className={inputClassName}
                   style={{
                     backgroundColor: THEME_COLORS.bgLight,

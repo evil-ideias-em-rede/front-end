@@ -200,7 +200,7 @@ export const TurmaDetailPage: React.FC = () => {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-4xl xl:text-5xl font-black tracking-tight text-white drop-shadow-sm">
-                  {turma.series} {turma.idSeries}
+                  {turma.series} - {turma.disciplina}
                 </h1>
 
                 <button
@@ -223,12 +223,6 @@ export const TurmaDetailPage: React.FC = () => {
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-
-              {turma.name && (
-                <p className="mt-1 text-lg font-bold text-white drop-shadow-sm">
-                  {turma.name}
-                </p>
-              )}
 
               <p className="mt-1 text-sm font-semibold text-white/90 drop-shadow-sm">
                 {turma.school}
@@ -489,7 +483,7 @@ export const TurmaDetailPage: React.FC = () => {
       {isDeleteOpen && turma && (
         <ConfirmDeleteModal
           title="Excluir turma?"
-          message={`Tem certeza que deseja excluir a turma "${turma.series} ${turma.idSeries}"? Esta ação não pode ser desfeita.`}
+          message={`Tem certeza que deseja excluir a turma "${turma.series} - ${turma.disciplina}"? Esta ação não pode ser desfeita.`}
           onCancel={() => setIsDeleteOpen(false)}
           onConfirm={() => {
             removeTurma(turma.id);
@@ -558,7 +552,7 @@ const TurmasSidebar: React.FC<TurmasSidebarProps> = ({
 
               <span className="min-w-0 flex-1">
                 <span className={`block text-sm font-bold truncate ${isActive ? 'text-white' : ''}`}>
-                  {t.series} {t.idSeries}
+                  {t.series} - {t.disciplina}
                 </span>
                 <span
                   className={`block text-[11px] font-semibold truncate ${

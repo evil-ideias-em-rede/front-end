@@ -63,7 +63,8 @@ export const TurmasTab: React.FC<TurmasTabProps> = () => {
       .filter((turma) => {
         const matchesSearch =
           turma.school.toLowerCase().includes(normalizedSearch) ||
-          turma.series.toLowerCase().includes(normalizedSearch);
+          turma.series.toLowerCase().includes(normalizedSearch) ||
+          turma.disciplina.toLowerCase().includes(normalizedSearch);
 
         const matchesSeries =
           seriesFilter === 'all' ||
@@ -618,7 +619,7 @@ export const TurmasTab: React.FC<TurmasTabProps> = () => {
                   <div className="p-6 flex flex-col flex-1 space-y-4">
                     <div>
                       <h3 className="line-clamp-1 text-base font-bold">
-                        {turma.series} {turma.idSeries}
+                        {turma.series} - {turma.disciplina}
                       </h3>
                       <p className="line-clamp-1 text-xs font-bold">
                         {turma.school}

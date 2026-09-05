@@ -53,7 +53,7 @@ export const EditarTurmaModal: React.FC<EditarTurmaModalProps> = ({
   const [series, setSeries] = useState(turma.series);
   const [idLabel, setIdLabel] = useState(turma.idSeries);
   const [students, setStudents] = useState(turma.qtd);
-  const [name, setName] = useState(turma.name ?? '');
+  const [disciplina, setDisciplina] = useState(turma.disciplina ?? '');
   const [color, setColor] = useState(turma.color ?? TURMA_COLORS[0]);
   const [image, setImage] = useState(turma.image ?? '');
   const [saved, setSaved] = useState(false);
@@ -74,7 +74,7 @@ export const EditarTurmaModal: React.FC<EditarTurmaModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!school.trim() || !series.trim()) return;
+    if (!school.trim() || !series.trim() || !disciplina.trim()) return;
 
     setSaved(true);
 
@@ -85,7 +85,7 @@ export const EditarTurmaModal: React.FC<EditarTurmaModalProps> = ({
         series,
         idSeries: idLabel.trim() || 'A',
         qtd: Math.max(0, Number(students) || 0),
-        name: name.trim() || undefined,
+        disciplina: disciplina.trim(),
         color,
         image: image || undefined,
       });
@@ -107,8 +107,7 @@ export const EditarTurmaModal: React.FC<EditarTurmaModalProps> = ({
           </h3>
 
           <p className="text-xs font-semibold text-stone-500">
-            {series} {idLabel}
-            {name ? ` • ${name}` : ''} — {school}
+            {series} - {disciplina} — {school}
           </p>
         </div>
       ) : (
@@ -251,16 +250,16 @@ export const EditarTurmaModal: React.FC<EditarTurmaModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: THEME_COLORS.textDark }}>
-                Nome (opcional)
+                Disciplina
               </label>
               <div className="relative">
                 <Users className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
                 <input
                   type="text"
-                  value={name}
+                  value={disciplina}
                   maxLength={40}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Turma A - Manhã"
+                  onChange={(e) => setDisciplina(e.target.value)}
+                  placeholder="Ex: Português"
                   className={inputClassName}
                   style={{
                     backgroundColor: THEME_COLORS.bgLight,
