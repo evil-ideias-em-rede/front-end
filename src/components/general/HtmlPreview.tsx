@@ -32,19 +32,7 @@ export const HtmlPreview: React.FC<HtmlPreviewProps> = ({
   height,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState<number | null>(fit ? 1 : null);
-
-  const content = html?.trim();
-  if (!content) {
-    return (
-      <span
-        className={`flex items-center justify-center ${className ?? ''}`}
-        style={{ backgroundColor: THEME_COLORS.lightPrimary, color: THEME_COLORS.primary }}
-      >
-        <File className="w-5 h-5" />
-      </span>
-    );
-  }
+  const [, setScale] = useState<number | null>(fit ? 1 : null);
 
   useEffect(() => {
     if (!fit || !containerRef.current) return;
@@ -63,6 +51,18 @@ export const HtmlPreview: React.FC<HtmlPreviewProps> = ({
     ro.observe(container);
     return () => ro.disconnect();
   }, [fit, refWidth, refHeight]);
+
+  const content = html?.trim();
+  if (!content) {
+    return (
+      <span
+        className={`flex items-center justify-center ${className ?? ''}`}
+        style={{ backgroundColor: THEME_COLORS.lightPrimary, color: THEME_COLORS.primary }}
+      >
+        <File className="w-5 h-5" />
+      </span>
+    );
+  }
 
   if (!fit) {
     return (

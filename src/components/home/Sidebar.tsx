@@ -53,7 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className="h-screen sticky top-0 w-20 border-r flex flex-col justify-center z-30 select-none relative"
+      className="h-screen sticky top-0 w-20 shrink-0 border-r flex flex-col justify-center z-30 select-none relative"
       style={{
         backgroundColor: 'transparent',
         borderColor: THEME_COLORS.borderLight,

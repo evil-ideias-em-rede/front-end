@@ -1,10 +1,9 @@
 ﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Search, Sparkles, MessageSquareQuote, LayoutTemplate, BookOpen, 
-  FileText, Clock, CheckCircle2,
-  FolderOpen, Layers, Zap,
-  PencilSparkles
+  MessageSquareQuote, LayoutTemplate, BookOpen, 
+  FileText, Clock,
+  FolderOpen, Layers, Zap
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import { getAllMateriais } from '../../data/mockData';
@@ -17,19 +16,10 @@ interface HomePageProps {
 
 export const HomePage: React.FC<HomePageProps> = () => {
   const navigate = useNavigate();
-  const [ideaPrompt, setIdeaPrompt] = useState('');
   const [materiais] = useState<Material[]>(() => getAllMateriais());
   const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [generatedToast, setGeneratedToast] = useState<string | null>(null);
 
   // Quick Inspiration Prompts
-  const inspirationChips = [
-    'Debate sobre Regulação de Redes Sociais',
-    'Simulação de Plenário: Uso de Celulares na Escola',
-    'Matriz de Falácias no Discurso Público',
-    'O Contrato Social no Século XXI',
-    'Oficina de Redação: Participação e Voto Jovem',
-  ];
 
   // Canva-style Category format badges — cores variadas da paleta vibrante
   const categoryShortcuts = [
@@ -76,19 +66,6 @@ export const HomePage: React.FC<HomePageProps> = () => {
       badge: 'Ideação Livre',
     },
   ];
-
-  const handleGenerateIdea = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!ideaPrompt.trim()) return;
-
-    setGeneratedToast(`Gerando rascunho pedagógico para: "${ideaPrompt}"...`);
-    
-    setTimeout(() => {
-      setIdeaPrompt('');
-      setGeneratedToast('Novo plano adicionado ao seu painel!');
-      setTimeout(() => setGeneratedToast(null), 3000);
-    }, 1200);
-  };
 
   const filteredMateriais = materiais.filter((m) => {
     if (m.status !== 'Criando') return false;
@@ -225,14 +202,6 @@ export const HomePage: React.FC<HomePageProps> = () => {
           </div>
           */}
 
-          {/* Toast Notification */}
-          {generatedToast && (
-            <div className="p-3 bg-emerald-100 border border-emerald-300 rounded-xl text-emerald-900 text-xs font-bold flex items-center justify-center gap-2 animate-in fade-in">
-              <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-              <span>{generatedToast}</span>
-            </div>
-          )}
-
         </div>
       </section>
 
@@ -254,7 +223,13 @@ export const HomePage: React.FC<HomePageProps> = () => {
               <button
                 key={cat.id}
                 type="button"
-                onClick={() => navigate('/home/editor')}
+                onClick={() =>
+                  navigate(
+                    cat.id === 'brainstorm'
+                      ? '/home/editor'
+                      : `/home/editor?start=spec&title=${encodeURIComponent(cat.label)}`
+                  )
+                }
                 className={`p-4 rounded-2xl border-r shadow-sm text-left transition-all hover:scale-[1.02] cursor-pointer flex flex-col justify-between min-h-[120px] shadow-sm
                 }`}
                 style={{
