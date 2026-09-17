@@ -127,7 +127,7 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Voltar para o Login
               </button>
-              <span className="text-xs font-medium" style={{ color: THEME_COLORS.gray }}>IdeiasEmRede</span>
+              <span className="text-xs font-medium" style={{ color: THEME_COLORS.gray }}>Contraponto</span>
             </div>
           </div>
         ) : (

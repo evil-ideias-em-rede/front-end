@@ -126,7 +126,7 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
           onClick={onBack}
           className="p-2 rounded-lg hover:bg-black/[0.04] transition-colors cursor-pointer"
           style={{ color: THEME_COLORS.primary }}
-          title="Voltar ao Brainstorm"
+          title="Voltar às sugestões"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>

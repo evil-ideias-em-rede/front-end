@@ -73,7 +73,7 @@ export const AboutInitiative: React.FC = () => {
               Trabalhar política na escola não é doutrinação partidária — é ensinar os jovens a <strong>ler o mundo com discernimento</strong>, compreender as instituições republicanas, conhecer seus direitos e deveres e defender ideias com base em fatos e respeito.
             </p>
             <p className="text-base leading-relaxed font-medium" style={{ color: THEME_COLORS.gray }}>
-              O <strong>IdeiasEmRede</strong> instrumentaliza os educadores com roteiros de mediação, modelos de simulações e materiais didáticos imparciais, permitindo que a sala de aula seja um espaço de aprendizado vivo e inspirador.
+              O <strong>Contraponto</strong> instrumentaliza os educadores com roteiros de mediação, modelos de simulações e materiais didáticos imparciais, permitindo que a sala de aula seja um espaço de aprendizado vivo e inspirador.
             </p>
             
             <div className="pt-2 flex flex-wrap gap-4">

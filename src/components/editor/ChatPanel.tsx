@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Sparkles, Layers as LayersIcon, FileText, X } from 'lucide-react';
+import { Send, Sparkles, FileText, X } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 
 export interface ChatMessage {
@@ -12,7 +12,7 @@ interface ChatPanelProps {
   messages: ChatMessage[];
   onSend: (text: string) => void;
   placeholder?: string;
-  contextLabel: string;
+  contextLabel?: string;
   contextIcon?: 'layer' | 'document';
   selectionLabel?: string;
   onClearSelection?: () => void;
@@ -22,8 +22,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   messages,
   onSend,
   placeholder = 'Descreva uma mudança...',
-  contextLabel,
-  contextIcon = 'document',
   selectionLabel,
   onClearSelection,
 }) => {
@@ -59,16 +57,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="text-sm font-black tracking-tight" style={{ color: THEME_COLORS.textDark }}>
-              Assistente
+              Contraponto
             </h2>
-            <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: THEME_COLORS.gray }}>
-              {contextIcon === 'layer' ? (
-                <LayersIcon className="w-3 h-3" />
-              ) : (
-                <FileText className="w-3 h-3" />
-              )}
-              <span className="truncate">{contextLabel}</span>
-            </span>
           </div>
         </div>
       </div>

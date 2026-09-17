@@ -235,7 +235,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>Entrar no IdeiasEmRede</span>
+                  <span>Entrar no Contraponto</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -343,7 +343,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   className="mt-0.5 w-4 h-4 rounded border-stone-300"
                 />
                 <span>
-                  Concordo com as diretrizes de pluralismo pedagógico e termos de uso do <strong>IdeiasEmRede</strong>.
+                  Concordo com as diretrizes de pluralismo pedagógico e termos de uso do <strong>Contraponto</strong>.
                 </span>
               </label>
             </div>

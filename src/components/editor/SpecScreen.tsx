@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { ArrowLeft, FilePlus2, Lightbulb } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import { ChatPanel } from './ChatPanel';
+import { getGenerateLabel } from '../../utils/materialLabels';
 import type { ChatMessage } from './ChatPanel';
 
 interface SpecScreenProps {
@@ -9,6 +10,7 @@ interface SpecScreenProps {
   initialHtml: string;
   onBack: () => void;
   onGenerate: (html: string) => void;
+  type?: string;
 }
 
 const splitStyleAndBody = (html: string): { style: string; body: string } => {
@@ -71,6 +73,7 @@ export const SpecScreen: React.FC<SpecScreenProps> = ({
   initialHtml,
   onBack,
   onGenerate,
+  type,
 }) => {
   const [html, setHtml] = useState<string>(initialHtml);
   // HTML exibido no iframe. Só muda quando vem do chat; edição direta não o toca,
@@ -179,7 +182,7 @@ export const SpecScreen: React.FC<SpecScreenProps> = ({
             style={{ backgroundColor: THEME_COLORS.primary }}
           >
             <FilePlus2 className="w-4 h-4" />
-            Gerar material/atividade/plano de aula
+            {getGenerateLabel(type)}
           </button>
         </div>
 
@@ -228,7 +231,7 @@ function appendSpecChange(html: string, text: string): string {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const body = doc.body;
   const note = doc.createElement('p');
-  note.innerHTML = `<b>Nota do assistente:</b> ajuste aplicado a partir de "<em>${escapeHtml(text)}</em>".`;
+  note.innerHTML = `<b>Nota do Contraponto:</b> ajuste aplicado a partir de "<em>${escapeHtml(text)}</em>".`;
   body.appendChild(note);
   const style = doc.querySelector('head style')?.outerHTML ?? '';
   return style + body.innerHTML;

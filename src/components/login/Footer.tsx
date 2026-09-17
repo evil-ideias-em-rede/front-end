@@ -44,7 +44,7 @@ export const Footer: React.FC = () => {
             <div className="pt-2 space-y-2.5 text-xs font-medium text-stone-300">
               <div className="flex items-center gap-3">
                 <Mail className="w-4 h-4" style={{ color: THEME_COLORS.primary }} />
-                <span>contato@ideiasemrede.edu.br</span>
+                <span>contato@Contraponto.edu.br</span>
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="w-4 h-4" style={{ color: THEME_COLORS.secondary }} />
@@ -145,7 +145,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium text-stone-400">
-          <p>© 2026 IdeiasEmRede - Plataforma Educacional para o Ensino Básico. Todos os direitos reservados.</p>
+          <p>© 2026 Contraponto - Plataforma Educacional para o Ensino Básico. Todos os direitos reservados.</p>
           
           <div className="flex items-center gap-6">
             <span className="hover:text-stone-300 cursor-pointer">Termos de Uso</span>

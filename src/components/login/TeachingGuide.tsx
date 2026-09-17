@@ -200,7 +200,7 @@ export const TeachingGuide: React.FC = () => {
                   >
                     <span>Disponível nos templates do professor</span>
                     <span className="flex items-center gap-1 font-extrabold" style={{ color: THEME_COLORS.secondary }}>
-                      IdeiasEmRede <ArrowRight className="w-3.5 h-3.5" />
+                      Contraponto <ArrowRight className="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </div>

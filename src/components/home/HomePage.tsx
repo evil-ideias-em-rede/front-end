@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   MessageSquareQuote, LayoutTemplate, BookOpen, 
   FileText, Clock,
-  FolderOpen, Layers, Zap
+  FolderOpen, BarChart3, Zap
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import { getAllMateriais } from '../../data/mockData';
@@ -24,46 +24,46 @@ export const HomePage: React.FC<HomePageProps> = () => {
   // Canva-style Category format badges — cores variadas da paleta vibrante
   const categoryShortcuts = [
     {
+      id: 'brainstorm',
+      label: 'Brainstorm',
+      icon: Zap,
+      color: '#F43F5E',
+      badge: 'Ideação Livre',
+    },
+    {
       id: 'debate',
-      label: 'Roteiros de Debate',
+      label: 'Roteiro de Debate',
       icon: MessageSquareQuote,
       color: THEME_COLORS.primary,
       badge: 'Tempo & Réplicas',
     },
     {
       id: 'plano',
-      label: 'Planos de Aula BNCC',
+      label: 'Plano de Aula',
       icon: LayoutTemplate,
       color: THEME_COLORS.secondary,
       badge: 'Competências 7 e 10',
     },
     {
       id: 'redacao',
-      label: 'Oficinas de Redação',
+      label: 'Oficina de Redação',
       icon: FileText,
       color: THEME_COLORS.sunshine,
       badge: 'Intervenção Social',
     },
     {
-      id: 'simulacao',
-      label: 'Simulações',
-      icon: Layers,
-      color: '#EC4899',
-      badge: 'Role Play Cidadão',
-    },
-    {
       id: 'materiais',
-      label: 'Matrizes & Falácias',
+      label: 'Letramento Midiático',
       icon: BookOpen,
       color: '#3B82F6',
-      badge: 'Letramento Midiático',
+      badge: 'Matrizes & Falácias',
     },
     {
-      id: 'brainstorm',
-      label: 'Brainstorm Aberto',
-      icon: Zap,
-      color: '#F43F5E',
-      badge: 'Ideação Livre',
+      id: 'dados',
+      label: 'Explorar os Dados',
+      icon: BarChart3,
+      color: '#EC4899',
+      badge: 'Temas em alta',
     },
   ];
 
@@ -225,9 +225,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
                 type="button"
                 onClick={() =>
                   navigate(
-                    cat.id === 'brainstorm'
-                      ? '/home/editor'
-                      : `/home/editor?start=spec&title=${encodeURIComponent(cat.label)}`
+                    `/home/editor?title=${encodeURIComponent(cat.label)}&type=${encodeURIComponent(cat.id)}`
                   )
                 }
                 className={`p-4 rounded-2xl border-r shadow-sm text-left transition-all hover:scale-[1.02] cursor-pointer flex flex-col justify-between min-h-[120px] shadow-sm
@@ -327,7 +325,11 @@ export const HomePage: React.FC<HomePageProps> = () => {
             return (
               <div
                 key={material.id}
-                onClick={() => navigate('/home/editor')}
+                onClick={() =>
+                  navigate(
+                    `/home/editor/material?title=${encodeURIComponent(material.title)}`
+                  )
+                }
                 className={`
                   rounded-3xl shadow-sm border overflow-hidden flex flex-col
                   transition-all hover:shadow-md hover:-translate-y-1 cursor-pointer group

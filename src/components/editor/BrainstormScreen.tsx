@@ -1,15 +1,26 @@
 import React, { useState } from 'react';
-import { ArrowRight, Zap, Circle, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Circle, CheckCircle2 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import { MOCK_BRAINSTORM_IDEAS } from '../../data/mockBrainstormIdeas';
+import { getGenerateLabel } from '../../utils/materialLabels';
 import { ChatPanel } from './ChatPanel';
 import type { ChatMessage } from './ChatPanel';
 
 interface BrainstormScreenProps {
   onProceed: (title: string) => void;
+  type?: string;
 }
 
-export const BrainstormScreen: React.FC<BrainstormScreenProps> = ({ onProceed }) => {
+const BRAINSTORM_HEADINGS: Record<string, string> = {
+  brainstorm: 'Sugestões Para Sala de Aula',
+  debate: 'Sugestões para o seu debate',
+  plano: 'Sugestões para o seu plano de aula',
+  redacao: 'Sugestões para a sua oficina de redação',
+  materiais: 'Sugestões para o seu letramento midiático',
+  dados: 'Sugestões para a sua exploração de dados',
+};
+
+export const BrainstormScreen: React.FC<BrainstormScreenProps> = ({ onProceed, type }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -20,6 +31,8 @@ export const BrainstormScreen: React.FC<BrainstormScreenProps> = ({ onProceed })
   ]);
 
   const selectedIdea = MOCK_BRAINSTORM_IDEAS.find((i) => i.id === selectedId) ?? null;
+
+  const heading = (type && BRAINSTORM_HEADINGS[type]) || 'Sugestões Para Sala de Aula';
 
   const handleSend = (text: string) => {
     const id = `m-${Date.now()}`;
@@ -34,18 +47,15 @@ export const BrainstormScreen: React.FC<BrainstormScreenProps> = ({ onProceed })
     <div className="screen-in flex-1 min-w-0 h-full min-h-0 flex">
       {/* Main suggestion grid */}
       <div className="flex-1 min-w-0 h-full flex flex-col overflow-y-auto">
-        <div className="shrink-0 px-6 pt-5 pb-3">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold"
-            style={{ backgroundColor: THEME_COLORS.lightAccent, color: THEME_COLORS.accentHover }}>
-            <Zap className="w-3.5 h-3.5" />
-            Modo Brainstorm
-          </div>
+        <div className="shrink-0 p-6">
           <h1 className="mt-2 text-2xl font-black tracking-tight" style={{ color: THEME_COLORS.textDark }}>
-            Sugestões para o seu tema
+            {heading}
           </h1>
+          {/*
           <p className="mt-1 text-xs font-semibold" style={{ color: THEME_COLORS.gray }}>
-            Selecione uma ideia para detalhar — ou continue conversando com o assistente para refiná-las.
+            Selecione uma ideia para gerar seu material, ou continue conversando para refiná-las.
           </p>
+          */}
         </div>
 
         <div className="flex-1 px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 grid-auto-rows-min gap-4 content-start">
@@ -91,21 +101,6 @@ export const BrainstormScreen: React.FC<BrainstormScreenProps> = ({ onProceed })
                 <p className={`mt-1.5 text-xs font-medium leading-relaxed ${isSelected ? '' : 'line-clamp-3'}`} style={{ color: THEME_COLORS.gray }}>
                   {isSelected ? idea.description : idea.summary}
                 </p>
-
-                <div className="mt-auto pt-3 flex flex-wrap items-center gap-1.5">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                    style={{ backgroundColor: THEME_COLORS.primary + '1a', color: THEME_COLORS.primary }}>
-                    {idea.format}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                    style={{ backgroundColor: THEME_COLORS.lightAccent, color: THEME_COLORS.accentHover }}>
-                    {idea.series}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                    style={{ backgroundColor: `${idea.accentColor}1a`, color: idea.accentColor }}>
-                    {idea.content}
-                  </span>
-                </div>
               </button>
             );
           })}
@@ -121,7 +116,7 @@ export const BrainstormScreen: React.FC<BrainstormScreenProps> = ({ onProceed })
               className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black text-white transition-all hover:scale-[1.02] cursor-pointer shadow-md"
               style={{ backgroundColor: selectedIdea.accentColor }}
             >
-              Prosseguir com essa ideia
+              {getGenerateLabel(type)}
               <ArrowRight className="w-4 h-4" />
             </button>
           ) : (

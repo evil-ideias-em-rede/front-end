@@ -1,5 +1,5 @@
 ﻿/**
- * Paleta IdeiasEmRede — roxo como protagonista, cinza bebê lavanda como base
+ * Paleta Contraponto — roxo como protagonista, cinza bebê lavanda como base
  * Violeta elétrico (principal) + Turquesa (apoio) + Laranja (micro-detalhes) + Amarelo sol (alertas)
  * Sem uso de branco puro (#FFFFFF).
  */

@@ -333,7 +333,7 @@ export const TemplateDetailPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() =>
-                  navigate(`/home/editor?start=editor&title=${encodeURIComponent(template.title)}`)
+                  navigate(`/home/editor/material?title=${encodeURIComponent(template.title)}`)
                 }
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider text-white transition-all hover:scale-105 cursor-pointer"
                 style={{ backgroundColor: THEME_COLORS.secondary }}
