@@ -17,7 +17,8 @@ const BRAINSTORM_HEADINGS: Record<string, string> = {
   plano: 'Sugestões para o seu plano de aula',
   redacao: 'Sugestões para a sua oficina de redação',
   materiais: 'Sugestões para o seu letramento midiático',
-  dados: 'Sugestões para a sua exploração de dados',
+  slides: 'Sugestões para os seus slides',
+  complementares: 'Sugestões para os seus materiais complementares',
 };
 
 export const BrainstormScreen: React.FC<BrainstormScreenProps> = ({ onProceed, type }) => {

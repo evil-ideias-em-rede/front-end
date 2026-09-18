@@ -19,6 +19,7 @@ interface LayerSidebarProps {
   selectedId: string | null;
   onSelect: (layer: HtmlLayer) => void;
   onSelectDocument: () => void;
+  pageLabel?: string;
 }
 
 const INDENT = 16;
@@ -49,6 +50,7 @@ export const LayerSidebar: React.FC<LayerSidebarProps> = ({
   selectedId,
   onSelect,
   onSelectDocument,
+  pageLabel,
 }) => {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
@@ -158,6 +160,14 @@ export const LayerSidebar: React.FC<LayerSidebarProps> = ({
           <h2 className="text-sm font-black tracking-tight" style={{ color: THEME_COLORS.textDark }}>
             Camadas
           </h2>
+          {pageLabel && (
+            <span
+              className="px-2 py-0.5 rounded-full text-[10px] font-black"
+              style={{ backgroundColor: THEME_COLORS.lightPrimary, color: THEME_COLORS.primary }}
+            >
+              {pageLabel}
+            </span>
+          )}
         </div>
         <span className="text-[10px] font-bold text-stone-400">{layers.length}</span>
       </div>
@@ -194,7 +204,7 @@ export const LayerSidebar: React.FC<LayerSidebarProps> = ({
               Documento
             </span>
             <span className="block text-[10px] font-semibold text-stone-400 uppercase tracking-wide">
-              página completa
+              {pageLabel ?? 'página completa'}
             </span>
           </span>
         </button>

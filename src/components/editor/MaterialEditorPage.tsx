@@ -1,8 +1,8 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
 import { THEME_COLORS } from '../../constants/colors';
 import { EDITOR_MOCK_HTML } from '../../data/mockEditorHtml';
-import { parseHtmlLayers, updateLayerHtml } from '../../utils/htmlLayers';
+import { parseHtmlLayers, parseHtmlPages, buildPageDocument, mergePageIntoDocument, updateLayerHtml } from '../../utils/htmlLayers';
 import type { HtmlLayer } from '../../utils/htmlLayers';
 import { LayerSidebar } from './LayerSidebar';
 import { HtmlCanvas } from './HtmlCanvas';
@@ -19,8 +19,12 @@ export const MaterialEditorPage: React.FC = () => {
   const serie = searchParams.get('serie') ?? undefined;
   const audienciaId = searchParams.get('audienciaId') ?? undefined;
 
+  // Slides editam em folha horizontal (paisagem); demais formatos em retrato.
+  const orientation: 'V' | 'H' = materialType === 'slides' ? 'H' : 'V';
+
   const [html, setHtml] = useState<string>(() => parseHtmlLayers(EDITOR_MOCK_HTML).markedHtml);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pageIndex, setPageIndex] = useState(0);
   const [editorMessages, setEditorMessages] = useState<ChatMessage[]>([
     {
       id: 'ed-1',
@@ -29,11 +33,38 @@ export const MaterialEditorPage: React.FC = () => {
     },
   ]);
 
-  const { layers, injectedHtml } = useMemo(() => parseHtmlLayers(html), [html]);
+  const { layers } = useMemo(() => parseHtmlLayers(html), [html]);
+  const pages = useMemo(() => parseHtmlPages(html), [html]);
+  const safePageIndex = Math.min(pageIndex, pages.length - 1);
+  const pageLayers = useMemo(
+    () => layers.filter((l) => (l.pageIndex ?? 0) === safePageIndex),
+    [layers, safePageIndex]
+  );
+  const pageDocument = useMemo(
+    () => buildPageDocument(html, safePageIndex),
+    [html, safePageIndex]
+  );
+
+  // Garante índice válido se o nº de páginas mudar (ex.: edição estrutural)
+  useEffect(() => {
+    setPageIndex((i) => Math.min(i, pages.length - 1));
+  }, [pages.length]);
 
   const selectedLayer = useMemo(
     () => layers.find((l) => l.id === selectedId) ?? null,
     [layers, selectedId]
+  );
+
+  const handlePageChange = useCallback((next: number) => {
+    setPageIndex(next);
+    setSelectedId(null);
+  }, []);
+
+  const handleCommitPage = useCallback(
+    (pageDoc: Document) => {
+      setHtml((prev) => mergePageIntoDocument(prev, safePageIndex, pageDoc));
+    },
+    [safePageIndex]
   );
 
   const handleEdit = useCallback((layer: HtmlLayer, newHtml: string) => {
@@ -58,10 +89,11 @@ export const MaterialEditorPage: React.FC = () => {
   const handleEditorChat = (text: string) => {
     const id = `m-${Date.now()}`;
     const target = selectedLayer ? `a camada "${selectedLayer.label}"` : 'o documento';
+    const pageSuffix = pages.length > 1 ? ` (página ${safePageIndex + 1})` : '';
     setEditorMessages((prev) => [
       ...prev,
       { id, role: 'user', text },
-      { id: `${id}-r`, role: 'assistant', text: `Aplicarei mudanças em ${target} conforme: "${text}".` },
+      { id: `${id}-r`, role: 'assistant', text: `Aplicarei mudanças em ${target}${pageSuffix} conforme: "${text}".` },
     ]);
   };
 
@@ -96,21 +128,27 @@ export const MaterialEditorPage: React.FC = () => {
     >
       <div className="screen-in flex-1 flex h-full min-h-0">
         <LayerSidebar
-          layers={layers}
+          layers={pageLayers}
           selectedId={selectedId}
           onSelect={handleSelectLayer}
           onSelectDocument={handleSelectDocument}
+          pageLabel={pages.length > 1 ? pages[safePageIndex]?.label : undefined}
         />
 
         <HtmlCanvas
-          html={injectedHtml}
-          layers={layers}
+          html={pageDocument}
+          layers={pageLayers}
           selectedId={selectedId}
           onEdit={handleEdit}
           onSelectById={handleSelectById}
-          onCommitDocument={setHtml}
+          onCommitDocument={handleCommitPage}
           onBack={handleBack}
           title={documentTitle}
+          pageIndex={safePageIndex}
+          pageCount={pages.length}
+          onPageChange={handlePageChange}
+          orientation={orientation}
+          isSlides={materialType === 'slides'}
         />
 
         <ChatPanel

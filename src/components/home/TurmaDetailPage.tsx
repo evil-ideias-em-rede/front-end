@@ -19,7 +19,7 @@ import {
   addTurma,
   removeTurma,
 } from '../../data/mockData';
-import type { Turma, ContentStatus } from '../../types';
+import type { Turma } from '../../types';
 import { HtmlPreview } from '../general/HtmlPreview';
 import { EditarTurmaModal } from '../criar/EditarTurmaModal';
 import { CriarTurmaModal } from '../criar/CriarTurmaModal';
@@ -27,14 +27,7 @@ import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
 
 type ContentFilter = 'all' | 'plano' | 'atividade' | 'material';
 
-type StatusFilter = 'all' | ContentStatus;
-
 type SortDirection = 'asc' | 'desc';
-
-const STATUS_COLORS: Record<ContentStatus, string> = {
-  'Criando': '#FFB800',
-  'Pronto para usar': '#00B8A9',
-};
 
 const CONTENT_TYPE_LABEL: Record<ContentFilter, string> = {
   all: 'Todos',
@@ -48,7 +41,6 @@ export const TurmaDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
 
   const [filter, setFilter] = useState<ContentFilter>('all');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -76,8 +68,6 @@ export const TurmaDetailPage: React.FC = () => {
       title: string;
       type: ContentFilter;
       subtitle: string;
-      color: string;
-      status: ContentStatus;
       htmlContent: string;
       orientation: 'V' | 'H';
     }> = [];
@@ -88,8 +78,6 @@ export const TurmaDetailPage: React.FC = () => {
         title: m.title,
         type: m.category,
         subtitle: CONTENT_TYPE_LABEL[m.category],
-        color: STATUS_COLORS[m.status],
-        status: m.status,
         htmlContent: m.htmlContent,
         orientation: m.orientation,
       })
@@ -104,9 +92,6 @@ export const TurmaDetailPage: React.FC = () => {
     return [...allContent]
       .filter((item) => (filter === 'all' ? true : item.type === filter))
       .filter((item) =>
-        statusFilter === 'all' ? true : item.status === statusFilter
-      )
-      .filter((item) =>
         normalizedSearch
           ? item.title.toLowerCase().includes(normalizedSearch)
           : true
@@ -117,14 +102,13 @@ export const TurmaDetailPage: React.FC = () => {
         });
         return sortDirection === 'asc' ? comparison : -comparison;
       });
-  }, [allContent, filter, statusFilter, search, sortDirection]);
+  }, [allContent, filter, search, sortDirection]);
 
   const hasActiveFilters =
-    filter !== 'all' || statusFilter !== 'all' || search.trim() !== '';
+    filter !== 'all' || search.trim() !== '';
 
   const clearFilters = () => {
     setFilter('all');
-    setStatusFilter('all');
     setSearch('');
   };
 
@@ -312,47 +296,6 @@ export const TurmaDetailPage: React.FC = () => {
                 })}
               </div>
 
-              {/* Separador */}
-              <div className="h-5 w-px bg-stone-200 mx-1" />
-
-              {/* Status */}
-              <div className="flex items-center gap-1">
-                {[
-                  { value: 'all' as StatusFilter, label: 'Todos' },
-                  { value: 'Criando' as StatusFilter, label: 'Criando' },
-                  { value: 'Pronto para usar' as StatusFilter, label: 'Pronto para usar' },
-                ].map((option) => {
-                  const active = statusFilter === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setStatusFilter(option.value)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all cursor-pointer ${
-                        active
-                          ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
-                          : 'bg-white/60 text-stone-600 hover:border-[#7C3AED]'
-                      }`}
-                      style={
-                        active
-                          ? undefined
-                          : { borderColor: THEME_COLORS.borderLight }
-                      }
-                    >
-                      {option.value !== 'all' && (
-                        <span
-                          className="w-2 h-2 rounded-full"
-                          style={{
-                            backgroundColor: STATUS_COLORS[option.value as ContentStatus],
-                          }}
-                        />
-                      )}
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-
               {/* Limpar filtros */}
               {hasActiveFilters && (
                 <button
@@ -429,27 +372,6 @@ export const TurmaDetailPage: React.FC = () => {
                     <h3 className="line-clamp-2 text-base font-bold">
                       {item.title}
                     </h3>
-
-                    {/* Status */}
-                    <span
-                      className="inline-flex items-center self-start mt-auto px-4 py-1 rounded-full text-[10px] font-bold border"
-                      style={{
-                        backgroundColor:
-                          item.status === 'Pronto para usar'
-                            ? '#eaf5e1'
-                            : '#f7f1e5',
-                        borderColor:
-                          item.status === 'Pronto para usar'
-                            ? '#CCFBF1'
-                            : '#FEF3C7',
-                        color:
-                          item.status === 'Pronto para usar'
-                            ? '#009489'
-                            : '#B45309',
-                      }}
-                    >
-                      {item.status}
-                    </span>
                   </div>
                 </div>
               ))}

@@ -18,7 +18,6 @@ export interface Material {
   category: MaterialCategory;
   fileType: 'pdf' | 'html';
   qtd: number;
-  status: ContentStatus;
   htmlContent: string;
   fileUrl?: string;
   turmaIds?: string[];
@@ -48,14 +47,11 @@ export interface Template {
   lastModifiedAt?: number;
 }
 
-export type ContentStatus = 'Criando' | 'Pronto para usar';
-
 export interface PlanoDeAula {
   id: string;
   title: string;
   description?: string;
   duration?: string;
-  status: ContentStatus;
   turmaId: string;
 }
 
@@ -66,7 +62,6 @@ export interface Atividade {
   title: string;
   type: AtividadeType;
   description?: string;
-  status: ContentStatus;
   turmaId: string;
 }
 
@@ -74,7 +69,6 @@ export interface MaterialTurma {
   id: string;
   title: string;
   type: MaterialType;
-  status: ContentStatus;
   turmaId: string;
 }
 

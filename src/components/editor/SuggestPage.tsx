@@ -30,7 +30,8 @@ function parseTipoMaterial(text: string): string | null {
   if (lower.includes('roteiro de debate') || lower.includes('debate')) return 'Roteiro de debate';
   if (lower.includes('oficina de redação') || lower.includes('oficina de redacao') || lower.includes('redação') || lower.includes('redacao')) return 'Oficina de redação';
   if (lower.includes('letramento')) return 'Letramento midiático';
-  if (lower.includes('dado')) return 'Exploração de dados';
+  if (lower.includes('slide')) return 'Slides';
+  if (lower.includes('complementar')) return 'Materiais complementares';
   if (lower.includes('material') || lower.includes('atividade')) return 'Material';
   return null;
 }
@@ -45,8 +46,10 @@ function tipoInicialFromUrl(type?: string): string | null {
       return 'Oficina de redação';
     case 'materiais':
       return 'Letramento midiático';
-    case 'dados':
-      return 'Exploração de dados';
+    case 'slides':
+      return 'Slides';
+    case 'complementares':
+      return 'Materiais complementares';
     default:
       return null;
   }
@@ -57,7 +60,8 @@ function tipoLabelToId(label: string | null, fallback?: string): string {
   if (label === 'Roteiro de debate') return 'debate';
   if (label === 'Oficina de redação') return 'redacao';
   if (label === 'Letramento midiático') return 'materiais';
-  if (label === 'Exploração de dados') return 'dados';
+  if (label === 'Slides') return 'slides';
+  if (label === 'Materiais complementares') return 'complementares';
   return fallback ?? 'brainstorm';
 }
 
@@ -190,6 +194,7 @@ export const SuggestPage: React.FC = () => {
             tipoMaterial={tipoMaterial}
             error={error}
             onProceed={handleProceed}
+            onSelectAudiencia={handleSelect}
           />
         </div>
 
@@ -197,7 +202,7 @@ export const SuggestPage: React.FC = () => {
         <ChatPanel
           messages={messages}
           onSend={handleSend}
-          placeholder="Pergunte por um tema, série, tipo de material..."
+          placeholder="Pergunte ao Contraponto..."
           contextLabel="Fontes primárias — audiências"
           contextIcon="document"
           selectionLabel={detalhe?.titulo}

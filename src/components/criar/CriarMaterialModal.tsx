@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { BookMarked, CheckCircle2, FileText, PenLine, Upload } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
-import type { ContentStatus, Material, MaterialCategory, MaterialType, Turma } from '../../types';
+import type { Material, MaterialCategory, MaterialType, Turma } from '../../types';
 import { materialHtml } from '../../data/mockData';
 import { BaseModal } from './BaseModal';
 
@@ -26,11 +26,6 @@ const MATERIAL_CATEGORIES: { id: MaterialCategory; label: string }[] = [
   { id: 'atividade', label: 'Atividade' },
 ];
 
-const MATERIAL_STATUSES: { id: ContentStatus; label: string }[] = [
-  { id: 'Criando', label: 'Criando' },
-  { id: 'Pronto para usar', label: 'Pronto para usar' },
-];
-
 const turmaKey = (turma: Turma) =>
   `${turma.school}||${turma.series}||${turma.idSeries}`;
 
@@ -42,7 +37,6 @@ export const CriarMaterialModal: React.FC<CriarMaterialModalProps> = ({
   const [name, setName] = useState('');
   const [type, setType] = useState<MaterialType>('source');
   const [category, setCategory] = useState<MaterialCategory>('material');
-  const [status, setStatus] = useState<ContentStatus>('Criando');
   const [fileType, setFileType] = useState<'pdf' | 'html'>('html');
   const [isAutoral, setIsAutoral] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
@@ -83,7 +77,6 @@ export const CriarMaterialModal: React.FC<CriarMaterialModalProps> = ({
         orientation: 'V',
         type,
         category,
-        status,
         fileType,
         qtd: selectedKeys.length,
         htmlContent:
@@ -281,43 +274,6 @@ export const CriarMaterialModal: React.FC<CriarMaterialModalProps> = ({
               >
                 <option value="html">HTML</option>
                 <option value="pdf">PDF</option>
-              </select>
-              <svg
-                className="w-4 h-4 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </div>
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: THEME_COLORS.textDark }}>
-              Status
-            </label>
-            <div className="relative">
-              <BookMarked className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as ContentStatus)}
-                className={`${inputClassName} appearance-none pr-9 cursor-pointer`}
-                style={{
-                  backgroundColor: THEME_COLORS.bgLight,
-                  borderColor: THEME_COLORS.borderLight,
-                  color: THEME_COLORS.textDark,
-                }}
-              >
-                {MATERIAL_STATUSES.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
-                  </option>
-                ))}
               </select>
               <svg
                 className="w-4 h-4 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"

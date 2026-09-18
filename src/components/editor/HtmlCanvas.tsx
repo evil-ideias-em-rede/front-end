@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { ZoomIn, ZoomOut, ArrowLeft, Maximize, Layers } from 'lucide-react';
+import { ZoomIn, ZoomOut, ArrowLeft, Maximize, Layers, ChevronLeft, ChevronRight, ChevronDown, Download, FileCode, FileText, FileType, Presentation } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
-import { layerSignature, serializeMarkedFragment } from '../../utils/htmlLayers';
+import { layerSignature } from '../../utils/htmlLayers';
 import type { HtmlLayer } from '../../utils/htmlLayers';
 import { FormattingBar } from './FormattingBar';
 
@@ -11,9 +11,13 @@ interface HtmlCanvasProps {
   selectedId: string | null;
   onEdit: (layer: HtmlLayer, innerHtml: string) => void;
   onSelectById: (id: string | null) => void;
-  onCommitDocument: (fragment: string) => void;
+  onCommitDocument: (pageDoc: Document) => void;
   onBack: () => void;
   title: string;
+  pageIndex: number;
+  pageCount: number;
+  onPageChange: (next: number) => void;
+  isSlides: boolean;
 }
 
 export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
@@ -25,10 +29,20 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
   onCommitDocument,
   onBack,
   title,
+  pageIndex,
+  pageCount,
+  onPageChange,
+  orientation,
+  isSlides,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(0.9);
+  const [exportOpen, setExportOpen] = useState(false);
+
+  // Folha A4: retrato 794x1123, paisagem (slides) 1123x794.
+  const pageW = orientation === 'H' ? 1123 : 794;
+  const pageH = orientation === 'H' ? 794 : 1123;
 
   // Ponte de mensagens do documento injetado (seleção/edição direta na camada)
   const onSelectByIdRef = useRef(onSelectById);
@@ -106,12 +120,12 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
   // (documento injetado), que envia { type: 'ied-edit', id, innerHtml }.
 
   // Comandos da barra de formatação (bold, headings, tabela, etc.) podem
-  // alterar a estrutura do documento; serializamos o documento vivo de volta
-  // ao estado para capturar formatação e elementos novos.
+  // alterar a estrutura do documento; o documento vivo da página é enviado
+  // ao pai, que o remonta no documento completo (preserva as demais páginas).
   const handleCommitDocument = useCallback(() => {
     const doc = iframeRef.current?.contentDocument;
     if (!doc) return;
-    onCommitDocument(serializeMarkedFragment(doc));
+    onCommitDocument(doc);
   }, [onCommitDocument]);
 
   return (
@@ -136,6 +150,34 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
         </span>
 
         <span className="flex-1" />
+
+        {pageCount > 1 && (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onPageChange(Math.max(0, pageIndex - 1))}
+              disabled={pageIndex === 0}
+              className="p-1.5 rounded-lg hover:bg-black/[0.04] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
+              style={{ color: THEME_COLORS.gray }}
+              title="Página anterior"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-[11px] font-black whitespace-nowrap" style={{ color: THEME_COLORS.gray }}>
+              Página {pageIndex + 1} de {pageCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => onPageChange(Math.min(pageCount - 1, pageIndex + 1))}
+              disabled={pageIndex === pageCount - 1}
+              className="p-1.5 rounded-lg hover:bg-black/[0.04] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
+              style={{ color: THEME_COLORS.gray }}
+              title="Próxima página"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {selectedId && (
           <span
@@ -179,6 +221,54 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
         >
           <Maximize className="w-4 h-4" />
         </button>
+
+        <span className="w-px h-5 bg-black/10 mx-1" />
+
+        {/* Exportar (menu visual — exportação real ainda não implementada) */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setExportOpen((v) => !v)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all hover:scale-[1.02] cursor-pointer shadow-sm"
+            style={{ backgroundColor: THEME_COLORS.primary }}
+            title="Exportar material"
+          >
+            <Download className="w-4 h-4" />
+            Exportar
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${exportOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {exportOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setExportOpen(false)}
+              />
+              <div
+                className="absolute right-0 mt-2 w-44 z-20 rounded-xl border bg-white shadow-xl overflow-hidden"
+                style={{ borderColor: THEME_COLORS.borderLight }}
+              >
+                {[
+                  { id: 'html', label: 'HTML', Icon: FileCode },
+                  { id: 'pdf', label: 'PDF', Icon: FileText },
+                  { id: 'docx', label: 'DOCX', Icon: FileType },
+                  ...(isSlides ? [{ id: 'pptx', label: 'PPTX', Icon: Presentation }] : []),
+                ].map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setExportOpen(false)}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold transition-colors hover:bg-black/[0.04] cursor-pointer"
+                    style={{ color: THEME_COLORS.textDark }}
+                    title={`Exportar como ${label} (em breve)`}
+                  >
+                    <Icon className="w-4 h-4" style={{ color: THEME_COLORS.primary }} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Barra fixa de formatação rich text */}
@@ -199,8 +289,8 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
           <div
             className="bg-white shadow-xl shrink-0"
             style={{
-              width: 794 * zoom,
-              height: 1123 * zoom,
+              width: pageW * zoom,
+              height: pageH * zoom,
               overflow: 'hidden',
               position: 'relative',
             }}
@@ -216,8 +306,8 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
                 position: 'absolute',
                 top: 0,
                 left: 0,
-                width: 794,
-                height: 1123,
+                width: pageW,
+                height: pageH,
                 transform: `scale(${zoom})`,
                 transformOrigin: 'top left',
                 background: '#fff',

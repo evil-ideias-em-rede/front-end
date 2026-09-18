@@ -12,6 +12,16 @@ export interface HtmlLayer {
   children: string[];
   /** Profundidade na árvore */
   depth: number;
+  /** Índice da página (0-based) a que a camada pertence */
+  pageIndex: number;
+}
+
+export interface HtmlPage {
+  id: string;
+  index: number;
+  label: string;
+  /** Selector do elemento da página no documento completo */
+  selector: string;
 }
 
 const EDITABLE_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'li', 'td', 'th', 'span', 'a', 'blockquote']);
@@ -55,6 +65,8 @@ export function parseHtmlLayers(html: string): {
   body.querySelectorAll(
     'h1,h2,h3,h4,h5,h6,p,li,td,th,span,a,ul,ol,table,blockquote,section'
   ).forEach((el) => {
+    // Contêineres de página não são camadas editáveis
+    if (el.hasAttribute('data-ied-page')) return;
     candidates.push(el);
   });
 
@@ -88,6 +100,7 @@ export function parseHtmlLayers(html: string): {
       parentId: null,
       children: [],
       depth: 0,
+      pageIndex: 0,
     };
 
     layers.push(layer);
@@ -117,6 +130,21 @@ export function parseHtmlLayers(html: string): {
     }
   });
 
+  // Atribuir pageIndex via ancestral [data-ied-page] mais próximo.
+  // Ordem das páginas = ordem dos filhos diretos do body com o atributo.
+  const pageOrder: Element[] = [];
+  body.querySelectorAll(':scope > [data-ied-page]').forEach((el) => {
+    pageOrder.push(el);
+  });
+  if (pageOrder.length > 0) {
+    layers.forEach((layer) => {
+      const idx = Number(layer.selector.match(/\d+/)?.[0] ?? -1);
+      const el = body.querySelector(`[data-ied-layer="${idx}"]`);
+      const pageEl = el?.closest('[data-ied-page]') ?? null;
+      layer.pageIndex = pageEl ? Math.max(0, pageOrder.indexOf(pageEl)) : 0;
+    });
+  }
+
   const styleTag = doc.querySelector('style');
   const existingStyles = styleTag ? styleTag.outerHTML : '';
 
@@ -132,6 +160,87 @@ export function parseHtmlLayers(html: string): {
     '</body></html>';
 
   return { layers, injectedHtml, markedHtml };
+}
+
+/**
+ * Divide o HTML marcado em páginas a partir dos marcadores
+ * `<section data-ied-page>` (filhos diretos do body). Sem marcadores,
+ * o documento inteiro é a página única (fallback).
+ */
+export function parseHtmlPages(html: string): HtmlPage[] {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const markers: Element[] = [];
+  doc.body.querySelectorAll(':scope > [data-ied-page]').forEach((el) => {
+    markers.push(el);
+  });
+  if (markers.length === 0) {
+    return [{ id: 'ied-page-0', index: 0, label: 'Página 1', selector: 'body' }];
+  }
+  return markers.map((el, index) => ({
+    id: `ied-page-${index}`,
+    index,
+    label: `Página ${index + 1}`,
+    selector: `body > [data-ied-page]:nth-of-type(${index + 1})`,
+  }));
+}
+
+/**
+ * Monta o srcdoc de UMA página (folha A4 do canvas): CSS/JS do editor +
+ * estilos originais + só o elemento da página.
+ */
+export function buildPageDocument(html: string, pageIndex: number): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const styleTag = doc.querySelector('style:not([id="ied-editor-style"])');
+  const existingStyles = styleTag ? styleTag.outerHTML : '';
+
+  const markers: Element[] = [];
+  doc.body.querySelectorAll(':scope > [data-ied-page]').forEach((el) => {
+    markers.push(el);
+  });
+
+  const bodyContent =
+    markers.length === 0
+      ? doc.body.innerHTML
+      : (markers[Math.min(pageIndex, markers.length - 1)]?.outerHTML ?? '');
+
+  return (
+    '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+    injectedEditorCss +
+    injectedEditorJs +
+    existingStyles +
+    '</head><body>' +
+    bodyContent +
+    '</body></html>'
+  );
+}
+
+/**
+ * Remonta o documento completo substituindo SÓ a página editada pelo
+ * conteúdo vivo do iframe (preserva as demais páginas e o <style> original).
+ */
+export function mergePageIntoDocument(
+  fullHtml: string,
+  pageIndex: number,
+  pageDoc: Document
+): string {
+  const doc = new DOMParser().parseFromString(fullHtml, 'text/html');
+  const markers: Element[] = [];
+  doc.body.querySelectorAll(':scope > [data-ied-page]').forEach((el) => {
+    markers.push(el);
+  });
+
+  if (markers.length === 0) {
+    doc.body.innerHTML = pageDoc.body.innerHTML;
+  } else {
+    const target = markers[Math.min(pageIndex, markers.length - 1)];
+    const edited = pageDoc.body.firstElementChild;
+    if (target && edited) {
+      target.replaceWith(doc.importNode(edited, true));
+    }
+  }
+
+  const style = doc.querySelector('head style')?.outerHTML ?? '';
+  return style + doc.body.innerHTML;
 }
 
 /**

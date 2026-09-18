@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   MessageSquareQuote, LayoutTemplate, BookOpen, 
   FileText, Clock,
-  FolderOpen, BarChart3, Zap
+  FolderOpen, Presentation, Zap
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import { getAllMateriais } from '../../data/mockData';
@@ -59,16 +59,15 @@ export const HomePage: React.FC<HomePageProps> = () => {
       badge: 'Matrizes & Falácias',
     },
     {
-      id: 'dados',
-      label: 'Explorar os Dados',
-      icon: BarChart3,
+      id: 'slides',
+      label: 'Slides',
+      icon: Presentation,
       color: '#EC4899',
-      badge: 'Temas em alta',
+      badge: 'Materiais complementares',
     },
   ];
 
   const filteredMateriais = materiais.filter((m) => {
-    if (m.status !== 'Criando') return false;
     if (filterCategory === 'all') return true;
     return m.category === filterCategory;
   });
@@ -281,7 +280,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
                   : 'bg-white text-stone-700 border-[#f3ebea] hover:bg-black/[0.05]'
               }`}
             >
-              Todos ({materiais.filter((m) => m.status === 'Criando').length})
+              Todos ({materiais.length})
             </button>
             <button
               type="button"

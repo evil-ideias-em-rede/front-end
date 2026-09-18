@@ -12,6 +12,7 @@ export const EDITOR_MOCK_HTML = `
   li { margin: 4px 0; }
   section { border-left: 3px solid #00B8A9; padding-left: 12px; margin: 12px 0; }
 </style>
+  <section data-ied-page="1">
   <h1>Plano de Aula: O Contrato Social de Hobbes a Rousseau</h1>
   <p><span class="label">Disciplina:</span> Filosofia &nbsp;&nbsp; <span class="label">Série:</span> 2º Ano EM</p>
   <p><span class="label">Duração:</span> 3 aulas &nbsp;&nbsp; <span class="label">Data:</span> __/__/____</p>
@@ -24,7 +25,9 @@ export const EDITOR_MOCK_HTML = `
       <li>Aplicar o conceito ao cotidiano escolar</li>
     </ul>
   </section>
+  </section>
 
+  <section data-ied-page="2">
   <h2>Desenvolvimento</h2>
   <table>
     <tr><th>Momento</th><th>Atividade</th><th>Tempo</th></tr>
@@ -33,6 +36,15 @@ export const EDITOR_MOCK_HTML = `
     <tr><td>Fechamento</td><td>Síntese e avaliação formativa</td><td>10 min</td></tr>
   </table>
 
+  <h2>Leitura dirigida</h2>
+  <p>Trechos selecionados do <em>Leviatã</em> (cap. XIII) e do <em>Contrato Social</em> (livro I, cap. VI) para comparação em duplas.</p>
+  </section>
+
+  <section data-ied-page="3">
   <h2>Avaliação</h2>
   <p>Observação da participação e produção dos estudantes durante as atividades.</p>
+
+  <h2>Para casa</h2>
+  <p>Redação curta: em que medida as regras da escola expressam um pacto social? Traga um exemplo do cotidiano.</p>
+  </section>
 `;

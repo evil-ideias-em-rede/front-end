@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Send, Sparkles, FileText, X } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 
@@ -27,6 +27,18 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 }) => {
   const [draft, setDraft] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-expansão até 5 linhas; acima disso, scroll interno.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 16;
+    const maxHeight = lineHeight * 8;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+    el.style.overflowY = el.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, [draft]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +80,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-xs font-medium leading-relaxed ${
+              className={`max-w-[85%] min-w-0 px-3.5 py-2.5 rounded-2xl text-xs font-medium leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] ${
                 msg.role === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm'
               }`}
               style={
@@ -120,15 +132,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           </div>
         )}
         <div
-          className="flex items-end gap-2 rounded-2xl border p-2 transition-all focus-within:border-violet-300"
+          className="flex gap-2 rounded-2xl border p-4 transition-all focus-within:border-violet-300"
           style={{ backgroundColor: '#fff', borderColor: THEME_COLORS.borderLight }}
         >
           <textarea
+            ref={textareaRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder={placeholder}
-            rows={2}
-            className="flex-1 bg-transparent resize-none text-xs font-medium focus:outline-none placeholder-stone-400"
+            rows={1}
+            className="flex-1 bg-transparent resize-none text-xs font-medium leading-4 focus:outline-none placeholder-stone-400"
             style={{ color: THEME_COLORS.textDark }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -140,7 +153,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           <button
             type="submit"
             disabled={!draft.trim()}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-white transition-all cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            className="w-9 h-9 rounded-xl place-self-end flex items-center justify-center text-white transition-all cursor-pointer disabled:opacity-40 disabled:cursor-default"
             style={{ backgroundColor: THEME_COLORS.primary }}
           >
             <Send className="w-4 h-4" />
