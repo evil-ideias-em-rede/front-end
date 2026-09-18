@@ -68,7 +68,7 @@ export function corCategoriaTaxonomia(categoria: string): { bg: string; color: s
     case 'Alinhamento Temático':
       return { bg: '#EDE9FE', color: '#7C3AED' };
     case 'Postura do Orador':
-      return { bg: '#CCFBF1', color: '#00B8A9' };
+      return { bg: '#ECF9CF', color: '#65A30D' };
     case 'Credibilidade e Validação':
       return { bg: '#FEF3C7', color: '#B45309' };
     default:

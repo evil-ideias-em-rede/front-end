@@ -22,9 +22,9 @@ export const THEME_COLORS = {
   accent: '#FF4D24',
   lightAccent: '#FFE1D6',
 
-  // Cor secundária (Turquesa Vibrante — frescor/inovação)
-  secondary: '#00B8A9',
-  lightSecondary: '#CCFBF1',
+  // Cor secundária (Verde Limão — frescor/inovação)
+  secondary: '#AEF03D',
+  lightSecondary: '#ECF9CF',
 
   // Cor terciária (Amarelo Sol — otimismo/ludicidade)
   sunshine: '#FFB800',
@@ -42,7 +42,7 @@ export const THEME_COLORS = {
   borderDark: '#322652',
   primaryHover: '#6D28D9',
   accentHover: '#D63A12',
-  secondaryHover: '#009489',
+  secondaryHover: '#93CC26',
 } as const;
 
 export type ThemeColors = typeof THEME_COLORS;

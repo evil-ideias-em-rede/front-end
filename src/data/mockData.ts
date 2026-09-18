@@ -16,14 +16,14 @@ export const MOCK_TEACHER_PROFILE: TeacherProfile = {
 export const MOCK_TURMAS: Turma[] = [
   { id: 'turma-001', school: 'E.E. Cecília Meireles', series: '6º Ano', idSeries: 'A', qtd: 32, disciplina: 'Português', color: '#7C3AED', lastModifiedAt: Date.now() - 1 * 3600000 },
   { id: 'turma-002', school: 'Colégio Alvorada', series: '6º Ano', idSeries: 'A', qtd: 40, disciplina: 'Matemática', color: '#9333EA', lastModifiedAt: Date.now() - 3 * 3600000 },
-  { id: 'turma-003', school: 'E.E. Maria Aparecida', series: '6º Ano', idSeries: 'A', qtd: 18, disciplina: 'Ciências', color: '#00B8A9', lastModifiedAt: Date.now() - 5 * 3600000 },
+  { id: 'turma-003', school: 'E.E. Maria Aparecida', series: '6º Ano', idSeries: 'A', qtd: 18, disciplina: 'Ciências', color: '#AEF03D', lastModifiedAt: Date.now() - 5 * 3600000 },
   { id: 'turma-004', school: 'Colégio São Bento', series: '7º Ano', idSeries: 'A', qtd: 29, disciplina: 'História', color: '#3B82F6', lastModifiedAt: Date.now() - 1 * 86400000 },
   { id: 'turma-005', school: 'E.E. Cecília Meireles', series: '7º Ano', idSeries: 'A', qtd: 27, disciplina: 'Português', color: '#FFB800', lastModifiedAt: Date.now() - 2 * 86400000 },
   { id: 'turma-006', school: 'Instituto Alpha', series: '7º Ano', idSeries: 'A', qtd: 35, disciplina: 'Geografia', color: '#EC4899', lastModifiedAt: Date.now() - 3 * 86400000 },
   { id: 'turma-007', school: 'Colégio Alvorada', series: '8º Ano', idSeries: 'A', qtd: 22, disciplina: 'Matemática', color: '#F43F5E', lastModifiedAt: Date.now() - 5 * 86400000 },
   { id: 'turma-008', school: 'E.E. Fernando Pessoa', series: '8º Ano', idSeries: 'A', qtd: 31, disciplina: 'Arte', color: '#22C55E', lastModifiedAt: Date.now() - 8 * 86400000 },
   { id: 'turma-009', school: 'Escola Nova Esperança', series: '8º Ano', idSeries: 'A', qtd: 0, disciplina: 'Inglês', color: '#7C3AED', lastModifiedAt: Date.now() - 10 * 86400000 },
-  { id: 'turma-010', school: 'Instituto Alpha', series: '9º Ano', idSeries: 'A', qtd: 38, disciplina: 'Filosofia', color: '#00B8A9', lastModifiedAt: Date.now() - 12 * 86400000 },
+  { id: 'turma-010', school: 'Instituto Alpha', series: '9º Ano', idSeries: 'A', qtd: 38, disciplina: 'Filosofia', color: '#AEF03D', lastModifiedAt: Date.now() - 12 * 86400000 },
   { id: 'turma-011', school: 'E.E. Cecília Meireles', series: '1º Ano EM', idSeries: 'A', qtd: 36, disciplina: 'Sociologia', color: '#EC4899', lastModifiedAt: Date.now() - 15 * 86400000 },
   { id: 'turma-012', school: 'Colégio Alvorada', series: '2º Ano EM', idSeries: 'A', qtd: 24, disciplina: 'Biologia', color: '#9333EA', lastModifiedAt: Date.now() - 20 * 86400000 },
   { id: 'turma-013', school: 'Instituto Alpha', series: '3º Ano EM', idSeries: 'A', qtd: 26, disciplina: 'Física', color: '#F43F5E', lastModifiedAt: Date.now() - 30 * 86400000 },
@@ -141,7 +141,7 @@ export const buildTemplateHtml = (title: string): string => `
 <style>
   body { font-family: 'Segoe UI', Arial, sans-serif; color: #333; margin: 32px; line-height: 1.6; }
   h1 { font-size: 22px; color: #7C3AED; border-bottom: 3px solid #7C3AED; padding-bottom: 8px; }
-  h2 { font-size: 16px; color: #00B8A9; margin-top: 24px; }
+  h2 { font-size: 16px; color: #65A30D; margin-top: 24px; }
   table { width: 100%; border-collapse: collapse; margin-top: 12px; }
   th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
   th { background: #EDE9FE; }
@@ -288,7 +288,7 @@ export const materialHtml = (title: string): string => `
 export const MATERIAL_COLORS = [
   '#7C3AED',
   '#9333EA',
-  '#00B8A9',
+  '#AEF03D',
   '#FFB800',
   '#EC4899',
   '#22C55E',

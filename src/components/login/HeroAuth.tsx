@@ -107,10 +107,10 @@ export const HeroAuth: React.FC<HeroAuthProps> = ({ onOpenAuth }) => {
               <button
                 type="button"
                 onClick={() => onOpenAuth('register')}
-                className="px-7 py-3.5 rounded-full text-white font-extrabold text-sm uppercase tracking-wider transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2.5 cursor-pointer shadow-lg shadow-[#00B8A9]/40 hover:shadow-xl hover:shadow-[#00B8A9]/60"
+                className="px-7 py-3.5 rounded-full font-extrabold text-sm uppercase tracking-wider transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2.5 cursor-pointer shadow-lg shadow-[#AEF03D]/40 hover:shadow-xl hover:shadow-[#AEF03D]/60"
                 style={{ 
                   backgroundColor: THEME_COLORS.secondary,
-                  color: THEME_COLORS.textLight,
+                  color: THEME_COLORS.textDark,
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = THEME_COLORS.secondaryHover)}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = THEME_COLORS.secondary)}

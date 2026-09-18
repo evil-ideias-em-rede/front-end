@@ -33,7 +33,7 @@ const SERIES = [
 const TURMA_COLORS = [
   '#7C3AED',
   '#9333EA',
-  '#00B8A9',
+  '#AEF03D',
   '#FFB800',
   '#EC4899',
   '#22C55E',

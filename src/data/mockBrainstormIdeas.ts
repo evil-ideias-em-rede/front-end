@@ -32,7 +32,7 @@ export const MOCK_BRAINSTORM_IDEAS: BrainstormIdea[] = [
     format: 'Atividade',
     series: '6º ano',
     content: 'Convivência e ética',
-    accentColor: '#00B8A9',
+    accentColor: '#AEF03D',
   },
   {
     id: 'idea-003',

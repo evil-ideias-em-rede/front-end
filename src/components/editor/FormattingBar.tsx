@@ -17,7 +17,7 @@ interface FormattingBarProps {
 }
 
 const COLOR_PALETTE = [
-  '#231942', '#7C3AED', '#00B8A9', '#FF4D24', '#FFB800',
+  '#231942', '#7C3AED', '#AEF03D', '#FF4D24', '#FFB800',
   '#EC4899', '#3B82F6', '#22C55E', '#F43F5E', '#000000',
 ];
 

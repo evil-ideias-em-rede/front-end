@@ -2,13 +2,13 @@ export const EDITOR_SPEC_HTML = `
 <style>
   body { font-family: 'Segoe UI', Arial, sans-serif; color: #333; margin: 28px; line-height: 1.65; }
   h2 { font-size: 17px; color: #7C3AED; margin: 18px 0 8px; }
-  h3 { font-size: 14px; color: #00B8A9; margin: 14px 0 6px; }
+  h3 { font-size: 14px; color: #65A30D; margin: 14px 0 6px; }
   p { margin: 8px 0; }
   ul, ol { margin: 8px 0; padding-left: 22px; }
   li { margin: 4px 0; }
   select { padding: 4px 8px; border: 1px solid #E4D6FF; border-radius: 6px; background: #fff; font-size: 13px; }
   .tag { font-weight: 700; color: #7C3AED; }
-  section { border-left: 3px solid #00B8A9; padding-left: 12px; margin: 12px 0; }
+  section { border-left: 3px solid #65A30D; padding-left: 12px; margin: 12px 0; }
 </style>
   <h2>Especificação da Atividade — Tribunal Simulado do Contrato Social</h2>
   <p>

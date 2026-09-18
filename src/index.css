@@ -3,7 +3,7 @@
 :root {
   --color-primary: #7C3AED;
   --color-accent: #FF4D24;
-  --color-secondary: #00B8A9;
+  --color-secondary: #AEF03D;
   --color-sunshine: #FFB800;
   --color-gray: #625D75;
   --color-text-dark: #231942;
@@ -37,7 +37,7 @@
 
 .text-outline-secondary {
   color: transparent;
-  -webkit-text-stroke: 2px #00B8A9;
+  -webkit-text-stroke: 2px #AEF03D;
 }
 
 .text-outline-accent {
