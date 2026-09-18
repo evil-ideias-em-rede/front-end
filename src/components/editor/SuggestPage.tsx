@@ -142,7 +142,8 @@ export const SuggestPage: React.FC = () => {
     // o alerta de erro (inline + toast) foi ocultado e o fluxo segue normal.
     // Para reativar, basta restaurar os blocos de setError/setToast abaixo.
     setError(null);
-    const titulo = detalhe?.titulo ?? 'Audiência para sala de aula';
+    // O material ganha um título próprio (editável no editor), não o da audiência.
+    const titulo = `${tipoMaterial ?? 'Novo material'}${serie ? ` — ${serie}` : ''}`;
     const params = new URLSearchParams();
     params.set('title', titulo);
     params.set('type', tipoLabelToId(tipoMaterial, urlType));

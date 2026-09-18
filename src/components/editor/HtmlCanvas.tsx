@@ -14,9 +14,11 @@ interface HtmlCanvasProps {
   onCommitDocument: (pageDoc: Document) => void;
   onBack: () => void;
   title: string;
+  onTitleChange: (title: string) => void;
   pageIndex: number;
   pageCount: number;
   onPageChange: (next: number) => void;
+  orientation: 'V' | 'H';
   isSlides: boolean;
 }
 
@@ -29,6 +31,7 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
   onCommitDocument,
   onBack,
   title,
+  onTitleChange,
   pageIndex,
   pageCount,
   onPageChange,
@@ -145,11 +148,14 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
           <ArrowLeft className="w-4 h-4" />
         </button>
 
-        <span className="text-xs font-bold truncate" style={{ color: THEME_COLORS.textDark }}>
-          {title}
-        </span>
-
-        <span className="flex-1" />
+        <input
+          value={title}
+          onChange={(e) => onTitleChange(e.target.value)}
+          placeholder="Título do material"
+          title="Editar título do material"
+          className="flex-1 min-w-0 bg-transparent text-xs font-bold rounded-lg px-2 py-1 transition-colors hover:bg-black/[0.03] focus:outline-none focus:bg-black/[0.04]"
+          style={{ color: THEME_COLORS.textDark }}
+        />
 
         {pageCount > 1 && (
           <div className="flex items-center gap-1">

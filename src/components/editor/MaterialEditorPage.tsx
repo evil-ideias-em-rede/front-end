@@ -14,10 +14,13 @@ export const MaterialEditorPage: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   const hasTitle = searchParams.has('title') && searchParams.get('title')?.trim() !== '';
-  const documentTitle = searchParams.get('title') ?? 'Plano: Contrato Social de Hobbes a Rousseau';
+  const initialTitle = searchParams.get('title') ?? 'Novo material';
   const materialType = searchParams.get('type') ?? undefined;
   const serie = searchParams.get('serie') ?? undefined;
   const audienciaId = searchParams.get('audienciaId') ?? undefined;
+
+  // Título próprio do material, editável pelo professor no toolbar.
+  const [documentTitle, setDocumentTitle] = useState(initialTitle);
 
   // Slides editam em folha horizontal (paisagem); demais formatos em retrato.
   const orientation: 'V' | 'H' = materialType === 'slides' ? 'H' : 'V';
@@ -144,6 +147,7 @@ export const MaterialEditorPage: React.FC = () => {
           onCommitDocument={handleCommitPage}
           onBack={handleBack}
           title={documentTitle}
+          onTitleChange={setDocumentTitle}
           pageIndex={safePageIndex}
           pageCount={pages.length}
           onPageChange={handlePageChange}
