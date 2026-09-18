@@ -67,10 +67,13 @@ export const HomePage: React.FC<HomePageProps> = () => {
     },
   ];
 
-  const filteredMateriais = materiais.filter((m) => {
-    if (filterCategory === 'all') return true;
-    return m.category === filterCategory;
-  });
+  // "Continue de onde parou": filtro por categoria + sempre os mais recentes primeiro.
+  const filteredMateriais = materiais
+    .filter((m) => {
+      if (filterCategory === 'all') return true;
+      return m.category === filterCategory;
+    })
+    .sort((a, b) => (b.lastModifiedAt ?? 0) - (a.lastModifiedAt ?? 0));
 
   return (
     <div 
