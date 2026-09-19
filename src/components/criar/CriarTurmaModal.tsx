@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
-import { MOCK_TEACHER_PROFILE } from '../../data/mockData';
+import { getStoredUser } from '../../api/client';
 import type { Turma } from '../../types';
 import { BaseModal } from './BaseModal';
 
@@ -48,9 +48,8 @@ export const CriarTurmaModal: React.FC<CriarTurmaModalProps> = ({
   onClose,
   onCreated,
 }) => {
-  const [school, setSchool] = useState(
-    MOCK_TEACHER_PROFILE.schools[0] ?? ''
-  );
+  const schools = getStoredUser()?.schools ?? [];
+  const [school, setSchool] = useState(schools[0] ?? '');
   const [series, setSeries] = useState(SERIES[0]);
   const [idLabel, setIdLabel] = useState('A');
   const [students, setStudents] = useState(1);
@@ -70,7 +69,11 @@ export const CriarTurmaModal: React.FC<CriarTurmaModalProps> = ({
   const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setImage(URL.createObjectURL(file));
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') setImage(reader.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -144,10 +147,10 @@ export const CriarTurmaModal: React.FC<CriarTurmaModalProps> = ({
                   color: THEME_COLORS.textDark,
                 }}
               >
-                {MOCK_TEACHER_PROFILE.schools.length === 0 && (
+                {schools.length === 0 && (
                   <option value="">Nenhuma instituição cadastrada</option>
                 )}
-                {MOCK_TEACHER_PROFILE.schools.map((s) => (
+                {schools.map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>

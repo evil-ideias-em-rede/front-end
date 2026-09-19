@@ -1,14 +1,15 @@
 ﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { 
   MessageSquareQuote, LayoutTemplate, BookOpen, 
   FileText, Clock,
   FolderOpen, Presentation, Zap
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
-import { getAllMateriais } from '../../data/mockData';
 import { HtmlPreview } from '../general/HtmlPreview';
-import type { Material } from '../../types';
+import { useBackendData } from '../../context/BackendDataContext';
+import * as api from '../../api/client';
 
 interface HomePageProps {
   onOpenNewIdeaPrompt?: (prompt: string) => void;
@@ -16,8 +17,62 @@ interface HomePageProps {
 
 export const HomePage: React.FC<HomePageProps> = () => {
   const navigate = useNavigate();
-  const [materiais] = useState<Material[]>(() => getAllMateriais());
+  const { materiais } = useBackendData();
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [workflowSessions, setWorkflowSessions] = useState<api.WorkflowSessionSummary[]>([]);
+  const [workflowLoading, setWorkflowLoading] = useState(true);
+  const [openingSessionId, setOpeningSessionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const loadWorkflowSessions = async () => {
+      try {
+        const sessions = await api.listWorkflowSessions();
+        if (active) setWorkflowSessions(sessions);
+      } catch {
+        if (active) setWorkflowSessions([]);
+      } finally {
+        if (active) setWorkflowLoading(false);
+      }
+    };
+    void loadWorkflowSessions();
+    return () => { active = false; };
+  }, []);
+
+  const agentLabels: Record<string, string> = {
+    brainstorm: 'Brainstorm',
+    debate: 'Roteiro de Debate',
+    lesson_plan: 'Plano de Aula',
+    political_leteracy: 'Letramento Midiático',
+    generic: 'Atividade',
+    writing_workshop: 'Oficina de Redação',
+    slides: 'Slides',
+  };
+
+  const agentTypes: Record<string, string> = {
+    brainstorm: 'brainstorm',
+    debate: 'debate',
+    lesson_plan: 'plano',
+    political_leteracy: 'materiais',
+    generic: 'generic',
+    writing_workshop: 'redacao',
+    slides: 'slides',
+  };
+
+  const workflowCategories: Record<string, string> = {
+    brainstorm: 'atividade',
+    debate: 'atividade',
+    generic: 'atividade',
+    lesson_plan: 'plano',
+    political_leteracy: 'material',
+    writing_workshop: 'atividade',
+    slides: 'material',
+  };
+
+  const formatSessionDate = (value: string) => new Date(value).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'short',
+  });
 
   // Quick Inspiration Prompts
 
@@ -74,6 +129,51 @@ export const HomePage: React.FC<HomePageProps> = () => {
       return m.category === filterCategory;
     })
     .sort((a, b) => (b.lastModifiedAt ?? 0) - (a.lastModifiedAt ?? 0));
+
+  const visibleWorkflowSessions = workflowSessions.filter((session) => (
+    filterCategory === 'all'
+      || workflowCategories[session.selected_agent ?? 'brainstorm'] === filterCategory
+  ));
+  const continuationCount = workflowSessions.length + materiais.length;
+  const categoryCount = (category: string) => (
+    workflowSessions.filter((session) => (
+      workflowCategories[session.selected_agent ?? 'brainstorm'] === category
+    )).length
+    + materiais.filter((material) => material.category === category).length
+  );
+
+  const openWorkflowSession = async (session: api.WorkflowSessionSummary) => {
+    if (openingSessionId) return;
+    setOpeningSessionId(session.id);
+
+    const agent = session.selected_agent ?? 'brainstorm';
+    const label = agentLabels[agent] ?? agent;
+    const type = agentTypes[agent] ?? 'brainstorm';
+    const params = new URLSearchParams({
+      type,
+      sessionId: session.id,
+    });
+
+    try {
+      let audienciaId: string | null = null;
+      try {
+        const audiencia = await api.getWorkflowFile<{ id?: string }>(session.id, 'audiencia.json');
+        audienciaId = audiencia?.id ? String(audiencia.id) : null;
+      } catch {
+        // A audiência é opcional enquanto o brainstorm ainda está em andamento.
+      }
+      if (audienciaId) params.set('audienciaId', audienciaId);
+
+      if (session.current_stage === 'editor') {
+        params.set('title', label);
+        navigate(`/home/editor/material?${params.toString()}`);
+      } else {
+        navigate(`/home/editor?${params.toString()}`);
+      }
+    } finally {
+      setOpeningSessionId(null);
+    }
+  };
 
   return (
     <div 
@@ -283,7 +383,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
                   : 'bg-white text-stone-700 border-[#f3ebea] hover:bg-black/[0.05]'
               }`}
             >
-              Todos ({materiais.length})
+              Todos ({continuationCount})
             </button>
             <button
               type="button"
@@ -294,7 +394,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
                   : 'bg-white text-stone-700 border-[#f3ebea] hover:bg-black/[0.05]'
               }`}
             >
-              Atividades
+              Atividades ({categoryCount('atividade')})
             </button>
             <button
               type="button"
@@ -305,7 +405,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
                   : 'bg-white text-stone-700 border-[#f3ebea] hover:bg-black/[0.05]'
               }`}
             >
-              Planos de Aula
+              Planos de Aula ({categoryCount('plano')})
             </button>
             <button
               type="button"
@@ -316,12 +416,51 @@ export const HomePage: React.FC<HomePageProps> = () => {
                   : 'bg-white text-stone-700 border-[#f3ebea] hover:bg-black/[0.05]'
               }`}
             >
-              Materiais complementares
+              Materiais complementares ({categoryCount('material')})
             </button>
           </div>
         </div>
 
-        {/* Desktop Cards Grid */}
+        {/* Conversas do workflow salvas no backend */}
+        {visibleWorkflowSessions.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 [grid-auto-flow:dense]">
+            {visibleWorkflowSessions.map((session) => {
+              const agent = session.selected_agent ?? 'brainstorm';
+              const label = agentLabels[agent] ?? agent;
+              return (
+                <div
+                  key={`session-${session.id}`}
+                  onClick={() => void openWorkflowSession(session)}
+                  className={`rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all hover:shadow-md hover:-translate-y-1 cursor-pointer group ${openingSessionId === session.id ? 'opacity-60' : ''}`}
+                  style={{ backgroundColor: '#ffffff40', borderColor: THEME_COLORS.borderLight }}
+                >
+                  <div className="h-40 relative overflow-hidden shrink-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(226, 221, 240, 0.4)' }}>
+                    <MessageSquareQuote className="w-14 h-14" style={{ color: THEME_COLORS.primary }} />
+                  </div>
+                  <div className="p-6 flex flex-col flex-1 space-y-3">
+                    <h3 className="line-clamp-1 text-base font-bold leading-snug group-hover:text-[#7C3AED] transition-colors" style={{ color: THEME_COLORS.textDark }}>
+                      {label}
+                    </h3>
+                    <p className="line-clamp-3 text-xs leading-relaxed" style={{ color: THEME_COLORS.gray }}>
+                      {session.last_message || 'Sessão iniciada; continue a conversa.'}
+                    </p>
+                  </div>
+                  <div className="p-4 px-6 border-t flex items-center justify-between text-xs" style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: 'rgba(0, 0, 0, 0.015)' }}>
+                    <span className="text-[11px] font-semibold text-stone-500 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatSessionDate(session.last_message_at ?? session.created_at)}
+                    </span>
+                    <span className="text-[11px] font-semibold text-stone-500">
+                      {session.message_count} mensagens
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Materiais gerados salvos no backend */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 [grid-auto-flow:dense]">
           {filteredMateriais.map((material) => {
             return (
@@ -381,7 +520,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
           })}
         </div>
 
-        {filteredMateriais.length === 0 && (
+        {!workflowLoading && visibleWorkflowSessions.length === 0 && filteredMateriais.length === 0 && (
           <div className="p-12 mb-8 text-center rounded-3xl space-y-3">
             <FolderOpen className="w-10 h-10 mx-auto text-stone-400" />
             <h4 className="font-bold text-sm text-stone-700">Nenhum material encontrado nesta categoria</h4>

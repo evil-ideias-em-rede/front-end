@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { THEME_COLORS } from '../../constants/colors';
 import { ChatPanel } from './ChatPanel';
@@ -6,12 +6,8 @@ import type { ChatMessage } from './ChatPanel';
 import { AudienciaList } from './AudienciaList';
 import { AudienciaDetalhes } from './AudienciaDetalhes';
 import { Toast } from '../general/Toast';
-import {
-  MOCK_AUDIENCIAS_RESUMO,
-  getMockAudienciaDetalhe,
-  type AudienciaDetalhe,
-  type AudienciaResumo,
-} from '../../data/mockAudiencias';
+import * as api from '../../api/client';
+import type { AudienciaDetalhe, AudienciaResumo } from '../../data/mockAudiencias';
 
 function parseSerie(text: string): string | null {
   const serieMatch = text.match(/\b([1-9])\s?º?\s?(ano|série|serie)(\s?(do\s?)?(ensino\s?médio|em|fundamental))?/i);
@@ -65,41 +61,223 @@ function tipoLabelToId(label: string | null, fallback?: string): string {
   return fallback ?? 'brainstorm';
 }
 
+function backendAgentFromType(type?: string): string | undefined {
+  switch (type) {
+    case 'debate': return 'debate';
+    case 'plano': return 'lesson_plan';
+    case 'materiais': return 'political_leteracy';
+    case 'redacao': return 'writing_workshop';
+    case 'slides': return 'slides';
+    case 'complementares': return 'generic';
+    default: return undefined;
+  }
+}
+
+interface PlanningItem {
+  id: string | number;
+  titulo: string;
+  resumo?: string;
+}
+
+const INITIAL_BRAINSTORM_MESSAGE: ChatMessage = {
+  id: 'bs-1',
+  role: 'assistant',
+  text: 'Me conte qual tema você quer trabalhar — e, se já souber, a série e o tipo de material (plano de aula, roteiro de debate, oficina de redação). Vou buscar as audiências que mais combinam.',
+};
+
+function truncate(text: string, max = 180): string {
+  const normalized = text.trim();
+  return normalized.length <= max ? normalized : `${normalized.slice(0, max - 1)}…`;
+}
+
+function normalizeAudiencia(raw: any): AudienciaDetalhe {
+  const discursos = Array.isArray(raw?.discursos) ? raw.discursos : [];
+  const participantes = Array.isArray(raw?.participantes) ? raw.participantes : [];
+  const posicionamentos = raw?.posicionamentos ?? {};
+  const positionByParticipant = new Map<string, string>();
+  for (const [position, people] of Object.entries(posicionamentos)) {
+    if (!Array.isArray(people)) continue;
+    for (const person of people as Array<{ participanteId?: string; resumo?: string }>) {
+      if (person.participanteId) positionByParticipant.set(person.participanteId, position);
+    }
+  }
+  const participantById = new Map<string, any>(participantes.map((person: any) => [String(person.id), person]));
+
+  return {
+    id: String(raw?.id ?? ''),
+    titulo: String(raw?.titulo ?? ''),
+    resumoCurto: truncate(String(raw?.resumo ?? '')),
+    resumo: String(raw?.resumo ?? ''),
+    textoIntegral: discursos
+      .slice()
+      .sort((a: any, b: any) => Number(a.ordem ?? 0) - Number(b.ordem ?? 0))
+      .map((fala: any) => String(fala.texto ?? ''))
+      .filter(Boolean),
+    participantes: participantes.map((person: any) => ({
+      nome: String(person.nome ?? ''),
+      partido: person.partido,
+      papel: String(person.papel ?? '').toLowerCase() === 'presidente' ? 'presidente' as const : 'participante' as const,
+      resumoArgumentos: String((() => {
+        const position = positionByParticipant.get(String(person.id));
+        const group = position ? (posicionamentos as Record<string, any[]>)[position] ?? [] : [];
+        return group.find((item: any) => String(item.participanteId) === String(person.id))?.resumo
+          ?? 'Sem resumo de posicionamento registrado.';
+      })()),
+    })),
+    falas: discursos.map((fala: any, index: number) => ({
+      id: String(fala.id ?? `${raw?.id ?? 'audiencia'}-fala-${index}`),
+      autor: String(fala.orador ?? ''),
+      ordem_no_debate: Number(fala.ordem ?? index + 1),
+      texto: String(fala.texto ?? ''),
+      resumo: truncate(String(fala.texto ?? ''), 220),
+      objeto_do_posicionamento: String(fala.posicionamento ?? ''),
+      taxonomia: { Posicionamento: [String(fala.posicionamento ?? 'neutro')] },
+    })),
+    propostas: (Array.isArray(raw?.propostas) ? raw.propostas : []).map((proposta: any) => ({
+      id: String(proposta.id ?? ''),
+      titulo: String(proposta.titulo ?? ''),
+      descricao: String(proposta.descricao ?? ''),
+      autor: String(
+        proposta.autorNome ?? participantById.get(String(proposta.autorId))?.nome ?? ''
+      ),
+    })),
+  };
+}
+
 export const SuggestPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const urlType = searchParams.get('type') ?? undefined;
 
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'bs-1',
-      role: 'assistant',
-      text: 'Me conte qual tema você quer trabalhar — e, se já souber, a série e o tipo de material (plano de aula, roteiro de debate, oficina de redação). Vou buscar as audiências que mais combinam.',
-    },
-  ]);
+  const sessionIdParam = searchParams.get('sessionId');
+  const audienciaIdParam = searchParams.get('audienciaId');
+  const serieParam = searchParams.get('serie');
+
+  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_BRAINSTORM_MESSAGE]);
   const [sugestoes, setSugestoes] = useState<AudienciaResumo[]>([]);
   const [loadingSugestoes, setLoadingSugestoes] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detalhe, setDetalhe] = useState<AudienciaDetalhe | null>(null);
   const [loadingDetalhe, setLoadingDetalhe] = useState(false);
-  const [serie, setSerie] = useState<string | null>(null);
+  const [serie, setSerie] = useState<string | null>(serieParam);
   const [tipoMaterial, setTipoMaterial] = useState<string | null>(() => tipoInicialFromUrl(urlType));
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
-  // Mantido para reativar a validação depois (evita unused var enquanto o alerta está oculto).
-  void setToast;
+  const [sessionId, setSessionId] = useState<string | null>(sessionIdParam);
+  const [sessionError, setSessionError] = useState<string | null>(null);
+  const creatingSession = useRef<Promise<string> | null>(null);
 
-  const handleSelect = (id: string) => {
+  const ensureSession = async (): Promise<string> => {
+    if (sessionId) return sessionId;
+    if (!creatingSession.current) {
+      creatingSession.current = api.createWorkflowSession(backendAgentFromType(urlType))
+        .then((session) => {
+          setSessionId(session.id);
+          return session.id;
+        })
+        .finally(() => { creatingSession.current = null; });
+    }
+    return creatingSession.current;
+  };
+
+  const loadPlanning = async (currentSessionId: string) => {
+    const planning = await api.getWorkflowPlanning<PlanningItem>(currentSessionId);
+    setSugestoes(planning.map((item) => ({
+      id: String(item.id),
+      titulo: item.titulo,
+      resumoCurto: item.resumo ?? '',
+    })));
+  };
+
+  useEffect(() => {
+    setSessionError(null);
+  }, [urlType]);
+
+  useEffect(() => {
+    if (sessionId) {
+      void api.updateWorkflowStage(sessionId, 'audiences').catch(() => undefined);
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!sessionIdParam) {
+      setSessionId(null);
+      setMessages([INITIAL_BRAINSTORM_MESSAGE]);
+      setSugestoes([]);
+      setSelectedId(null);
+      setDetalhe(null);
+      setSerie(serieParam);
+      return () => { active = false; };
+    }
+
+    setSessionId(sessionIdParam);
+    setSerie(serieParam);
+    setLoadingSugestoes(true);
+
+    const restoreSession = async () => {
+      try {
+        const [session, planning, audiencia] = await Promise.all([
+          api.getWorkflowSession(sessionIdParam),
+          api.getWorkflowPlanning<PlanningItem>(sessionIdParam),
+          audienciaIdParam
+            ? api.getAudiencia<any>(audienciaIdParam)
+            : api.getWorkflowFile<any>(sessionIdParam, 'audiencia.json').catch(() => null),
+        ]);
+
+        if (!active) return;
+
+        const persistedMessages: ChatMessage[] = session.messages
+          .filter((message) => (
+            (message.role === 'user' || message.role === 'assistant')
+            && message.hidden !== true
+            && Boolean(String(message.content ?? '').trim())
+          ))
+          .map((message, index) => ({
+            id: `${sessionIdParam}-message-${index}`,
+            role: message.role as 'user' | 'assistant',
+            text: String(message.content),
+          }));
+
+        setMessages([INITIAL_BRAINSTORM_MESSAGE, ...persistedMessages]);
+        setSugestoes(planning.map((item) => ({
+          id: String(item.id),
+          titulo: item.titulo,
+          resumoCurto: item.resumo ?? '',
+        })));
+        setSelectedId(audiencia?.id ? String(audiencia.id) : audienciaIdParam);
+        setDetalhe(audiencia ? normalizeAudiencia(audiencia) : null);
+        setSessionError(null);
+      } catch (cause) {
+        if (active) {
+          setSessionError(cause instanceof Error ? cause.message : 'Não foi possível retomar a sessão.');
+        }
+      } finally {
+        if (active) setLoadingSugestoes(false);
+      }
+    };
+
+    void restoreSession();
+    return () => { active = false; };
+  }, [audienciaIdParam, sessionIdParam, serieParam]);
+
+  const handleSelect = async (id: string) => {
     setSelectedId(id);
     setError(null);
     setLoadingDetalhe(true);
-    window.setTimeout(() => {
-      setDetalhe(getMockAudienciaDetalhe(id));
+    try {
+      const audiencia = await api.getAudiencia<any>(id);
+      if (sessionId) await api.selectWorkflowPlanningItem(sessionId, id);
+      setDetalhe(normalizeAudiencia(audiencia));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível carregar a audiência.');
+    } finally {
       setLoadingDetalhe(false);
-    }, 800);
+    }
   };
 
-  const handleSend = (text: string) => {
+  const handleSend = async (text: string) => {
     const id = `m-${Date.now()}`;
     const foundSerie = parseSerie(text);
     const foundTipo = parseTipoMaterial(text);
@@ -108,40 +286,52 @@ export const SuggestPage: React.FC = () => {
     setSerie(nextSerie);
     setTipoMaterial(nextTipo);
 
-    const isFirstQuestion = sugestoes.length === 0 && !loadingSugestoes;
-    if (isFirstQuestion) {
-      setLoadingSugestoes(true);
-    }
+    setLoadingSugestoes(true);
 
     const confirmacoes: string[] = [];
     if (foundSerie) confirmacoes.push(`série ${foundSerie}`);
     if (foundTipo) confirmacoes.push(foundTipo.toLowerCase());
 
-    setMessages((prev) => [
-      ...prev,
-      { id, role: 'user', text },
-      {
+    setMessages((prev) => [...prev, { id, role: 'user', text }]);
+    try {
+      const currentSessionId = await ensureSession();
+      const response = await api.sendWorkflowMessage(currentSessionId, text, 'brainstorm');
+      const replyText = String(response?.message?.content ?? response?.reply ?? 'Recebi sua mensagem.');
+      setMessages((prev) => [...prev, {
         id: `${id}-r`,
         role: 'assistant',
-        text: isFirstQuestion
-          ? `Boa! Encontrei ${MOCK_AUDIENCIAS_RESUMO.length} audiências sobre "${text}". Selecione uma na lista para ver resumo, participantes e propostas.${confirmacoes.length > 0 ? ` Anotei: ${confirmacoes.join(' + ')}.` : ' Quando souber, me diga a série e o tipo de material.'}`
-          : `Entendido! Ajustei as sugestões a partir de: "${text}".${confirmacoes.length > 0 ? ` Anotei: ${confirmacoes.join(' + ')}.` : ''}`,
-      },
-    ]);
-
-    if (isFirstQuestion) {
-      window.setTimeout(() => {
-        setSugestoes(MOCK_AUDIENCIAS_RESUMO);
-        setLoadingSugestoes(false);
-      }, 900);
+        text: `${replyText}${confirmacoes.length > 0 ? ` Anotei: ${confirmacoes.join(' + ')}.` : ''}`,
+      }]);
+      await loadPlanning(currentSessionId);
+      setSessionError(null);
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'Não foi possível conversar com o agente.';
+      setSessionError(message);
+      setMessages((prev) => [...prev, { id: `${id}-r`, role: 'assistant', text: `Não consegui concluir esta mensagem: ${message}` }]);
+    } finally {
+      setLoadingSugestoes(false);
     }
   };
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
     // Validação de série/tipo temporariamente desativada para prototipação:
     // o alerta de erro (inline + toast) foi ocultado e o fluxo segue normal.
     // Para reativar, basta restaurar os blocos de setError/setToast abaixo.
     setError(null);
+    if (!sessionId) {
+      setError(sessionError ?? 'Envie uma mensagem ao brainstorm antes de avançar.');
+      return;
+    }
+    try {
+      const result = await api.advanceWorkflow(sessionId);
+      if (!result.allowed) {
+        setError('O brainstorm ainda não concluiu o planejamento. Converse mais um pouco com o agente.');
+        return;
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível avançar para o agente final.');
+      return;
+    }
     // O material ganha um título próprio (editável no editor), não o da audiência.
     const titulo = `${tipoMaterial ?? 'Novo material'}${serie ? ` — ${serie}` : ''}`;
     const params = new URLSearchParams();
@@ -149,6 +339,7 @@ export const SuggestPage: React.FC = () => {
     params.set('type', tipoLabelToId(tipoMaterial, urlType));
     if (serie) params.set('serie', serie);
     if (detalhe) params.set('audienciaId', detalhe.id);
+    params.set('sessionId', sessionId);
     navigate(`/home/editor/material?${params.toString()}`);
   };
 

@@ -8,11 +8,18 @@ import { TemplatesTab } from './TemplatesTab';
 import { MateriaisTab } from './MateriaisTab';
 import { SettingsPage } from '../settings/SettingsPage';
 import { THEME_COLORS } from '../../constants/colors';
+import { clearAuth, isAuthenticated } from '../../api/client';
+import { useBackendData } from '../../context/BackendDataContext';
 
 export const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeMenu, setActiveMenu] = useState<SidebarMenuId>('criar');
+  const { error: dataError } = useBackendData();
+
+  useEffect(() => {
+    if (!isAuthenticated()) navigate('/', { replace: true });
+  }, [navigate]);
 
   const isTurmaDetail = location.pathname.startsWith('/home/turmas/');
   const isTemplateDetail = location.pathname.startsWith('/home/templates/');
@@ -76,6 +83,12 @@ export const DashboardLayout: React.FC = () => {
         }}
         className="flex-grow flex flex-col min-w-0 overflow-x-hidden">
 
+          {dataError && (
+            <div className="mx-6 mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700 lg:mx-20">
+              Não foi possível carregar os dados do backend: {dataError}
+            </div>
+          )}
+
           {/* Main View Router */}
           {(activeMenu === 'criar' || activeMenu === 'home') && <HomePage />}
 
@@ -85,7 +98,7 @@ export const DashboardLayout: React.FC = () => {
 
           {activeMenu === 'materiais' && <MateriaisTab />}
 
-          {activeMenu === 'settings' && <SettingsPage onLogout={() => navigate('/')} />}
+          {activeMenu === 'settings' && <SettingsPage onLogout={() => { clearAuth(); navigate('/'); }} />}
         </main>
       )}
     </div>

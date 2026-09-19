@@ -1,13 +1,15 @@
 ﻿import React, { useState } from 'react';
 import { X, Mail, Lock, User, ArrowRight, Sparkles, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
+import { login, register } from '../../api/client';
+import type { AuthUser } from '../../api/client';
 
 interface AuthModalProps {
   isOpen: boolean;
   initialMode: 'login' | 'register';
   onClose: () => void;
   onOpenForgotPassword: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (user: AuthUser) => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -35,46 +37,59 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Feedback
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [feedbackIsError, setFeedbackIsError] = useState(false);
 
   React.useEffect(() => {
     setMode(initialMode);
     setFeedback(null);
+    setFeedbackIsError(false);
   }, [initialMode, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setFeedback(null);
-
-    setTimeout(() => {
+    try {
+      const user = await login(loginEmail, loginPassword);
       setLoading(false);
-      setFeedback('Login efetuado com sucesso! Redirecionando para a homepage...');
-      setTimeout(() => {
-        if (onSuccess) onSuccess();
-        onClose();
-      }, 700);
-    }, 600);
+      setFeedbackIsError(false);
+      setFeedback('Login efetuado com sucesso!');
+      onSuccess?.(user);
+      onClose();
+    } catch (error) {
+      setLoading(false);
+      setFeedbackIsError(true);
+      setFeedback(error instanceof Error ? error.message : 'Não foi possível entrar.');
+    }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (regPassword !== regConfirmPassword) {
       alert('As senhas não conferem.');
       return;
     }
+    if (regPassword.length < 8) {
+      setFeedbackIsError(true);
+      setFeedback('A senha deve ter pelo menos 8 caracteres.');
+      return;
+    }
     setLoading(true);
     setFeedback(null);
-
-    setTimeout(() => {
+    try {
+      const user = await register(regName, regEmail, regPassword);
       setLoading(false);
-      setFeedback(`Cadastro realizado com sucesso, Professor(a) ${regName}! Redirecionando...`);
-      setTimeout(() => {
-        if (onSuccess) onSuccess();
-        onClose();
-      }, 700);
-    }, 600);
+      setFeedbackIsError(false);
+      setFeedback(`Cadastro realizado com sucesso, Professor(a) ${regName}!`);
+      onSuccess?.(user);
+      onClose();
+    } catch (error) {
+      setLoading(false);
+      setFeedbackIsError(true);
+      setFeedback(error instanceof Error ? error.message : 'Não foi possível criar a conta.');
+    }
   };
 
   return (
@@ -134,11 +149,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Feedback Alert */}
         {feedback && (
-          <div className="mb-6 p-4 bg-emerald-100/70 border border-emerald-300 rounded-2xl flex items-start gap-3 text-emerald-900 text-sm animate-in fade-in">
-            <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+          <div className={`mb-6 p-4 rounded-2xl flex items-start gap-3 text-sm animate-in fade-in ${feedbackIsError ? 'bg-red-100/70 border border-red-300 text-red-900' : 'bg-emerald-100/70 border border-emerald-300 text-emerald-900'}`}>
+            <CheckCircle2 className={`w-5 h-5 shrink-0 mt-0.5 ${feedbackIsError ? 'text-red-700' : 'text-emerald-700'}`} />
             <div>
-              <span className="font-bold">Pronto!</span>
-              <p className="mt-0.5 text-emerald-800">{feedback}</p>
+              <span className="font-bold">{feedbackIsError ? 'Não foi possível concluir' : 'Pronto!'}</span>
+              <p className={`mt-0.5 ${feedbackIsError ? 'text-red-800' : 'text-emerald-800'}`}>{feedback}</p>
             </div>
           </div>
         )}
@@ -304,7 +319,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   required
                   value={regPassword}
                   onChange={(e) => setRegPassword(e.target.value)}
-                  placeholder="Mín. 6 dígitos"
+                  minLength={8}
+                  placeholder="Mín. 8 caracteres"
                   className="w-full px-3.5 py-2.5 rounded-xl text-sm border focus:outline-none"
                   style={{ 
                     backgroundColor: THEME_COLORS.bgLight, 
@@ -320,6 +336,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <input
                   type="password"
                   required
+                  minLength={8}
                   value={regConfirmPassword}
                   onChange={(e) => setRegConfirmPassword(e.target.value)}
                   placeholder="Repita a senha"

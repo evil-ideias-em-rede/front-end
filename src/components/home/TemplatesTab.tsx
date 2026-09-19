@@ -10,9 +10,9 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 import { THEME_COLORS } from '../../constants/colors';
-import { MOCK_TURMAS, getAllTemplates, addTemplate } from '../../data/mockData';
 import { CriarTemplateModal } from '../criar/CriarTemplateModal';
 import { HtmlPreview } from '../general/HtmlPreview';
+import { useBackendData } from '../../context/BackendDataContext';
 
 type SortOption = 'alphabetical' | 'quantity' | 'recent';
 
@@ -22,8 +22,7 @@ interface TemplatesTabProps {}
 
 export const TemplatesTab: React.FC<TemplatesTabProps> = () => {
   const navigate = useNavigate();
-  const [version, setVersion] = useState(0);
-  const templates = useMemo(() => getAllTemplates(), [version]);
+  const { templates, turmas, createTemplate } = useBackendData();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
@@ -715,11 +714,10 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = () => {
 
       {isCreateOpen && (
         <CriarTemplateModal
-          turmas={MOCK_TURMAS}
+          turmas={turmas}
           onClose={() => setIsCreateOpen(false)}
           onCreated={(template) => {
-            addTemplate(template);
-            setVersion((v) => v + 1);
+            void createTemplate(template).catch((error) => console.error(error));
           }}
         />
       )}

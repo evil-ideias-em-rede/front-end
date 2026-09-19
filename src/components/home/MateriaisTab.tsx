@@ -10,17 +10,15 @@ import {
 } from 'lucide-react';
 
 import { THEME_COLORS } from '../../constants/colors';
-import { MOCK_TURMAS, getAllMateriais, addMaterial } from '../../data/mockData';
 import { CriarMaterialModal } from '../criar/CriarMaterialModal';
 import { HtmlPreview } from '../general/HtmlPreview';
+import { useBackendData } from '../../context/BackendDataContext';
 
 interface MateriaisTabProps {}
 
-const INITIAL_MATERIAIS = getAllMateriais();
-
 export const MateriaisTab: React.FC<MateriaisTabProps> = () => {
   const navigate = useNavigate();
-  const [materiais, setMateriais] = useState(INITIAL_MATERIAIS);
+  const { materiais, turmas, createMaterial } = useBackendData();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
@@ -873,11 +871,10 @@ export const MateriaisTab: React.FC<MateriaisTabProps> = () => {
 
       {isCreateOpen && (
         <CriarMaterialModal
-          turmas={MOCK_TURMAS}
+          turmas={turmas}
           onClose={() => setIsCreateOpen(false)}
           onCreated={(material) => {
-            addMaterial(material);
-            setMateriais(getAllMateriais());
+            void createMaterial(material).catch((error) => console.error(error));
           }}
         />
       )}

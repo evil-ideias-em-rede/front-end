@@ -8,6 +8,8 @@ interface ConfirmDeleteModalProps {
   message: string;
   onCancel: () => void;
   onConfirm: () => void;
+  loading?: boolean;
+  error?: string | null;
 }
 
 export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
@@ -15,6 +17,8 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   message,
   onCancel,
   onConfirm,
+  loading = false,
+  error = null,
 }) => {
   return (
     <BaseModal onClose={onCancel}>
@@ -35,10 +39,17 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
 
         <p className="text-sm font-semibold text-stone-500">{message}</p>
 
+        {error && (
+          <p className="w-full rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+            {error}
+          </p>
+        )}
+
         <div className="pt-2 flex justify-center gap-3 w-full">
           <button
             type="button"
             onClick={onCancel}
+            disabled={loading}
             className="px-6 py-2.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer"
             style={{
               backgroundColor: THEME_COLORS.bgLight,
@@ -52,10 +63,11 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
           <button
             type="button"
             onClick={onConfirm}
+            disabled={loading}
             className="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white shadow-sm transition-all hover:scale-105 cursor-pointer"
             style={{ backgroundColor: '#dc2626' }}
           >
-            Excluir
+            {loading ? 'Excluindo...' : 'Excluir'}
           </button>
         </div>
       </div>

@@ -176,7 +176,7 @@ export function parseHtmlPages(html: string): HtmlPage[] {
   if (markers.length === 0) {
     return [{ id: 'ied-page-0', index: 0, label: 'Página 1', selector: 'body' }];
   }
-  return markers.map((el, index) => ({
+  return markers.map((_, index) => ({
     id: `ied-page-${index}`,
     index,
     label: `Página ${index + 1}`,

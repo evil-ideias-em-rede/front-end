@@ -11,14 +11,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
-import {
-  getTurmaById,
-  getAllTurmas,
-  getMateriaisByTurmaId,
-  updateTurma,
-  addTurma,
-  removeTurma,
-} from '../../data/mockData';
+import { useBackendData } from '../../context/BackendDataContext';
 import type { Turma } from '../../types';
 import { HtmlPreview } from '../general/HtmlPreview';
 import { EditarTurmaModal } from '../criar/EditarTurmaModal';
@@ -46,21 +39,12 @@ export const TurmaDetailPage: React.FC = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [version, setVersion] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { turmas: turmasList, materiais: allMateriais, createTurma, updateTurma, deleteTurma } = useBackendData();
 
-  const turmasList = useMemo(
-    () => getAllTurmas(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [version]
-  );
-
-  const turma = useMemo(
-    () => (id ? getTurmaById(id) : undefined),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [id, version]
-  );
-
-  const materiais = useMemo(() => (id ? getMateriaisByTurmaId(id) : []), [id]);
+  const turma = useMemo(() => (id ? turmasList.find((item) => item.id === id) : undefined), [id, turmasList]);
+  const materiais = useMemo(() => (id ? allMateriais.filter((item) => item.turmaIds?.includes(id)) : []), [id, allMateriais]);
 
   const allContent = useMemo(() => {
     const items: Array<{
@@ -142,9 +126,7 @@ export const TurmaDetailPage: React.FC = () => {
           <CriarTurmaModal
             onClose={() => setIsCreateOpen(false)}
             onCreated={(novaTurma) => {
-              addTurma(novaTurma);
-              setVersion((v) => v + 1);
-              navigate(`/home/turmas/${novaTurma.id}`);
+              void createTurma(novaTurma).then((saved) => navigate(`/home/turmas/${saved.id}`)).catch((error) => console.error(error));
             }}
           />
         )}
@@ -199,7 +181,10 @@ export const TurmaDetailPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => setIsDeleteOpen(true)}
+                  onClick={() => {
+                    setDeleteError(null);
+                    setIsDeleteOpen(true);
+                  }}
                   aria-label="Excluir turma"
                   title="Excluir turma"
                   className="p-2.5 rounded-xl bg-white/20 border border-white/40 text-white backdrop-blur-sm transition-all hover:scale-105 hover:bg-white/30 cursor-pointer"
@@ -385,8 +370,7 @@ export const TurmaDetailPage: React.FC = () => {
           turma={turma}
           onClose={() => setIsEditOpen(false)}
           onUpdated={(updated) => {
-            updateTurma(updated);
-            setVersion((v) => v + 1);
+            void updateTurma(updated).catch((error) => console.error(error));
           }}
         />
       )}
@@ -395,8 +379,7 @@ export const TurmaDetailPage: React.FC = () => {
         <CriarTurmaModal
           onClose={() => setIsCreateOpen(false)}
           onCreated={(novaTurma) => {
-            addTurma(novaTurma);
-            setVersion((v) => v + 1);
+            void createTurma(novaTurma).then((saved) => navigate(`/home/turmas/${saved.id}`)).catch((error) => console.error(error));
             setIsCreateOpen(false);
           }}
         />
@@ -407,9 +390,21 @@ export const TurmaDetailPage: React.FC = () => {
           title="Excluir turma?"
           message={`Tem certeza que deseja excluir a turma "${turma.series} - ${turma.disciplina}"? Esta ação não pode ser desfeita.`}
           onCancel={() => setIsDeleteOpen(false)}
+          loading={isDeleting}
+          error={deleteError}
           onConfirm={() => {
-            removeTurma(turma.id);
-            navigate('/home/turmas');
+            if (isDeleting) return;
+            setIsDeleting(true);
+            setDeleteError(null);
+            void deleteTurma(turma.id)
+              .then(() => {
+                setIsDeleteOpen(false);
+                navigate('/home/turmas', { replace: true });
+              })
+              .catch((error) => {
+                setDeleteError(error instanceof Error ? error.message : 'Não foi possível excluir a turma.');
+                setIsDeleting(false);
+              });
           }}
         />
       )}

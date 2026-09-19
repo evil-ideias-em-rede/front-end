@@ -10,16 +10,7 @@ import {
   UsersRound,
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
-import {
-  getAllTemplates,
-  addTemplate,
-  updateTemplate,
-  removeTemplate,
-  getTemplateById,
-  getTurmasByTemplateId,
-  getAllTurmas,
-  MOCK_TURMAS,
-} from '../../data/mockData';
+import { useBackendData } from '../../context/BackendDataContext';
 import type { Template } from '../../types';
 import { downloadTemplateHtml } from '../../utils/downloadTemplate';
 import { HtmlPreview } from '../general/HtmlPreview';
@@ -137,24 +128,13 @@ export const TemplateDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
-  const [version, setVersion] = useState(0);
+  const { templates, turmas, createTemplate, updateTemplate, deleteTemplate } = useBackendData();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-  const templates = useMemo(() => getAllTemplates(), [version]);
-
-  const template = useMemo(
-    () => (id ? getTemplateById(id) : undefined),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [id, version]
-  );
-
-  const turmasAssociadas = useMemo(
-    () => (id ? getTurmasByTemplateId(id) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [id, version]
-  );
+  const template = useMemo(() => (id ? templates.find((item) => item.id === id) : undefined), [id, templates]);
+  const turmasAssociadas = useMemo(() => template?.turmaIds ? turmas.filter((turma) => template.turmaIds?.includes(turma.id)) : [], [template, turmas]);
 
   if (!template) {
     return (
@@ -359,12 +339,10 @@ export const TemplateDetailPage: React.FC = () => {
 
       {isCreateOpen && (
         <CriarTemplateModal
-          turmas={MOCK_TURMAS}
+          turmas={turmas}
           onClose={() => setIsCreateOpen(false)}
           onCreated={(newTemplate) => {
-            addTemplate(newTemplate);
-            setVersion((v) => v + 1);
-            navigate(`/home/templates/${newTemplate.id}`);
+            void createTemplate(newTemplate).then((saved) => navigate(`/home/templates/${saved.id}`)).catch((error) => console.error(error));
           }}
         />
       )}
@@ -372,11 +350,10 @@ export const TemplateDetailPage: React.FC = () => {
       {isEditOpen && (
         <EditarTemplateModal
           template={template}
-          turmas={getAllTurmas()}
+          turmas={turmas}
           onClose={() => setIsEditOpen(false)}
           onUpdated={(updated) => {
-            updateTemplate(updated);
-            setVersion((v) => v + 1);
+            void updateTemplate(updated).catch((error) => console.error(error));
           }}
         />
       )}
@@ -387,8 +364,7 @@ export const TemplateDetailPage: React.FC = () => {
           message={`Tem certeza que deseja excluir "${template.title}"? Esta ação não pode ser desfeita.`}
           onCancel={() => setIsDeleteOpen(false)}
           onConfirm={() => {
-            removeTemplate(template.id);
-            navigate('/home/templates');
+            void deleteTemplate(template.id).then(() => navigate('/home/templates')).catch((error) => console.error(error));
           }}
         />
       )}

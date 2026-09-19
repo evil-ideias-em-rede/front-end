@@ -11,16 +11,8 @@ import {
   UsersRound,
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
-import {
-  getAllMateriais,
-  addMaterial,
-  updateMaterial,
-  removeMaterial,
-  getMaterialById,
-  getTurmasByMaterialId,
-  MOCK_TURMAS,
-  MATERIAL_COLORS,
-} from '../../data/mockData';
+import { MATERIAL_COLORS } from '../../data/mockData';
+import { useBackendData } from '../../context/BackendDataContext';
 import type { Material, MaterialType } from '../../types';
 import { downloadMaterialHtml } from '../../utils/downloadMaterial';
 import { HtmlPreview } from '../general/HtmlPreview';
@@ -132,24 +124,13 @@ export const MaterialDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
-  const [version, setVersion] = useState(0);
+  const { materiais, turmas, createMaterial, updateMaterial, deleteMaterial } = useBackendData();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-  const materiais = useMemo(() => getAllMateriais(), [version]);
-
-  const material = useMemo(
-    () => (id ? getMaterialById(id) : undefined),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [id, version]
-  );
-
-  const turmasAssociadas = useMemo(
-    () => (id ? getTurmasByMaterialId(id) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [id, version]
-  );
+  const material = useMemo(() => (id ? materiais.find((item) => item.id === id) : undefined), [id, materiais]);
+  const turmasAssociadas = useMemo(() => material?.turmaIds ? turmas.filter((turma) => material.turmaIds?.includes(turma.id)) : [], [material, turmas]);
 
   if (!material) {
     return (
@@ -411,12 +392,10 @@ export const MaterialDetailPage: React.FC = () => {
 
       {isCreateOpen && (
         <CriarMaterialModal
-          turmas={MOCK_TURMAS}
+          turmas={turmas}
           onClose={() => setIsCreateOpen(false)}
           onCreated={(newMaterial) => {
-            addMaterial(newMaterial);
-            setVersion((v) => v + 1);
-            navigate(`/home/materiais/${newMaterial.id}`);
+            void createMaterial(newMaterial).then((saved) => navigate(`/home/materiais/${saved.id}`)).catch((error) => console.error(error));
           }}
         />
       )}
@@ -426,8 +405,7 @@ export const MaterialDetailPage: React.FC = () => {
           material={material}
           onClose={() => setIsEditOpen(false)}
           onUpdated={(updated) => {
-            updateMaterial(updated);
-            setVersion((v) => v + 1);
+            void updateMaterial(updated).catch((error) => console.error(error));
           }}
         />
       )}
@@ -438,8 +416,7 @@ export const MaterialDetailPage: React.FC = () => {
           message={`Tem certeza que deseja excluir "${material.title}"? Esta ação não pode ser desfeita.`}
           onCancel={() => setIsDeleteOpen(false)}
           onConfirm={() => {
-            removeMaterial(material.id);
-            navigate('/home/materiais');
+            void deleteMaterial(material.id).then(() => navigate('/home/materiais')).catch((error) => console.error(error));
           }}
         />
       )}

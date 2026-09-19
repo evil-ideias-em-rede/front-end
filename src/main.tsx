@@ -9,13 +9,14 @@ import { TemplateDetailPage } from './components/home/TemplateDetailPage.tsx'
 import { MaterialDetailPage } from './components/home/MaterialDetailPage.tsx'
 import { SuggestPage } from './components/editor/SuggestPage.tsx'
 import { MaterialEditorPage } from './components/editor/MaterialEditorPage.tsx'
+import { BackendDataProvider } from './context/BackendDataContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<App />} />
-        <Route path="/home" element={<DashboardLayout />}>
+        <Route path="/home" element={<BackendDataProvider><DashboardLayout /></BackendDataProvider>}>
           <Route path="turmas/:id" element={<TurmaDetailPage />} />
           <Route path="templates/:id" element={<TemplateDetailPage />} />
           <Route path="materiais/:id" element={<MaterialDetailPage />} />

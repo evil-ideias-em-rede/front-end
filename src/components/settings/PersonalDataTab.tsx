@@ -1,57 +1,83 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { User, Mail, School, ChartBar, Settings, Plus, Pencil, Trash2, Check, X } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
-import { MOCK_TEACHER_PROFILE } from '../../data/mockData';
-import type { TeacherProfile } from '../../types';
 import { Toast } from '../general/Toast';
+import { updateCurrentUser } from '../../api/client';
+import type { AuthUser } from '../../api/client';
+import { useBackendData } from '../../context/BackendDataContext';
 
-export const PersonalDataTab: React.FC = () => {
-  const [profile, setProfile] = useState<TeacherProfile>(MOCK_TEACHER_PROFILE);
+interface PersonalDataTabProps {
+  user: AuthUser;
+  onUserChange: (user: AuthUser) => void;
+}
+
+export const PersonalDataTab: React.FC<PersonalDataTabProps> = ({ user, onUserChange }) => {
+  const { turmas, templates, materiais } = useBackendData();
+  const [name, setName] = useState(user.name || '');
+  const [email, setEmail] = useState(user.email || '');
+  const [schools, setSchools] = useState<string[]>(user.schools || []);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [newSchool, setNewSchool] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    setName(user.name || '');
+    setEmail(user.email || '');
+    setSchools(user.schools || []);
+  }, [user.id, user.name, user.email, user.schools]);
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowSuccessToast(true);
+    setSaving(true);
+    setErrorMessage(null);
+    try {
+      const saved = await updateCurrentUser({
+        name: name.trim(),
+        email: email.trim(),
+        picture_url: user.picture_url || null,
+        schools,
+      });
+      onUserChange(saved);
+      setShowSuccessToast(true);
+    } catch (cause) {
+      setErrorMessage(cause instanceof Error ? cause.message : 'Não foi possível salvar as alterações.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAddSchool = () => {
     const value = newSchool.trim();
     if (!value) return;
-    if (profile.schools.some((s) => s.toLowerCase() === value.toLowerCase())) {
+    if (schools.some((s) => s.toLowerCase() === value.toLowerCase())) {
       setNewSchool('');
       return;
     }
-    setProfile({ ...profile, schools: [...profile.schools, value] });
+    setSchools((current) => [...current, value]);
     setNewSchool('');
   };
 
   const startEditSchool = (index: number) => {
     setEditingIndex(index);
-    setEditingValue(profile.schools[index]);
+    setEditingValue(schools[index]);
   };
 
   const saveSchoolEdit = () => {
     if (editingIndex === null) return;
     const value = editingValue.trim();
-    setProfile({
-      ...profile,
-      schools: profile.schools.map((s, i) =>
+    setSchools(schools.map((s, i) =>
         i === editingIndex ? value || s : s
-      ),
-    });
+      ));
     setEditingIndex(null);
   };
 
   const cancelSchoolEdit = () => setEditingIndex(null);
 
   const removeSchool = (index: number) => {
-    setProfile({
-      ...profile,
-      schools: profile.schools.filter((_, i) => i !== index),
-    });
+    setSchools(schools.filter((_, i) => i !== index));
     if (editingIndex === index) setEditingIndex(null);
   };
 
@@ -84,8 +110,8 @@ export const PersonalDataTab: React.FC = () => {
             <User className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
             <input
               type="text"
-              value={profile.name}
-              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/10"
               style={{
                 backgroundColor: THEME_COLORS.bgLight,
@@ -104,8 +130,8 @@ export const PersonalDataTab: React.FC = () => {
             <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
             <input
               type="email"
-              value={profile.email}
-              onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/10"
               style={{
                 backgroundColor: THEME_COLORS.bgLight,
@@ -122,9 +148,9 @@ export const PersonalDataTab: React.FC = () => {
           Escolas / Instituições de Ensino
         </label>
 
-        {profile.schools.length > 0 ? (
+        {schools.length > 0 ? (
           <ul className="space-y-2">
-            {profile.schools.map((school, index) => (
+            {schools.map((school, index) => (
               <li
                 key={`${school}-${index}`}
                 className="
@@ -315,19 +341,19 @@ export const PersonalDataTab: React.FC = () => {
 
       <div className="grid grid-cols-4 gap-2">
         <div className="p-4 rounded-2xl border text-center" style={{ backgroundColor: THEME_COLORS.bgLight, borderColor: THEME_COLORS.borderLight }}>
-          <span className="text-2xl font-black" style={{ color: THEME_COLORS.primary }}>{profile.activeClassesCount}</span>
+          <span className="text-2xl font-black" style={{ color: THEME_COLORS.primary }}>{turmas.length}</span>
           <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: THEME_COLORS.gray }}>Turmas Ativas</p>
         </div>
         <div className="p-4 rounded-2xl border text-center" style={{ backgroundColor: THEME_COLORS.bgLight, borderColor: THEME_COLORS.borderLight }}>
-          <span className="text-2xl font-black" style={{ color: THEME_COLORS.secondary }}>{profile.createdPlansCount}</span>
+          <span className="text-2xl font-black" style={{ color: THEME_COLORS.secondary }}>{templates.length}</span>
           <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: THEME_COLORS.gray }}>Planos Criados</p>
         </div>
         <div className="p-4 rounded-2xl border text-center" style={{ backgroundColor: THEME_COLORS.bgLight, borderColor: THEME_COLORS.borderLight }}>
-          <span className="text-2xl font-black" style={{ color: THEME_COLORS.primary }}>{profile.generatedMaterialsCount}</span>
+          <span className="text-2xl font-black" style={{ color: THEME_COLORS.primary }}>{materiais.length}</span>
           <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: THEME_COLORS.gray }}>Materiais Gerados</p>
         </div>
         <div className="p-4 rounded-2xl border text-center" style={{ backgroundColor: THEME_COLORS.bgLight, borderColor: THEME_COLORS.borderLight }}>
-          <span className="text-2xl font-black" style={{ color: THEME_COLORS.secondaryHover}}>{profile.createdWorksCount}</span>
+          <span className="text-2xl font-black" style={{ color: THEME_COLORS.secondaryHover}}>{materiais.filter((item) => item.category === 'atividade').length}</span>
           <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: THEME_COLORS.gray }}>Atividades Criadas</p>
         </div>
       </div>
@@ -351,10 +377,11 @@ export const PersonalDataTab: React.FC = () => {
       <div className="flex flex-col w-fit space-y-4">
         <button
           type="submit"
+          disabled={saving}
           className="px-6 py-2.5 rounded-xl text-white text-xs font-black uppercase tracking-wider shadow-sm transition-all hover:scale-105 cursor-pointer"
           style={{ backgroundColor: THEME_COLORS.primary }}
         >
-          Salvar Alterações
+          {saving ? 'Salvando...' : 'Salvar Alterações'}
         </button>
       </div>
     </form>
@@ -363,6 +390,13 @@ export const PersonalDataTab: React.FC = () => {
       <Toast
         message="Configurações do professor atualizadas com sucesso!"
         onClose={() => setShowSuccessToast(false)}
+      />
+    )}
+    {errorMessage && (
+      <Toast
+        message={errorMessage}
+        variant="error"
+        onClose={() => setErrorMessage(null)}
       />
     )}
     </>

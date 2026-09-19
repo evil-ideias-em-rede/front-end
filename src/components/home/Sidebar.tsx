@@ -1,11 +1,12 @@
 ﻿import React from 'react';
 import { 
-  Users, LayoutTemplate, BookOpen, 
+  Users, LayoutTemplate, BookOpen, UserRound,
   Plus, Home
 } from 'lucide-react';
 import { Logo } from '../general/Logo';
 import { THEME_COLORS } from '../../constants/colors';
 import { MOCK_TEACHER_PROFILE } from '../../data/mockData';
+import { getStoredUser } from '../../api/client';
 
 export type SidebarMenuId =
   | 'criar'
@@ -28,6 +29,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenNewIdea,
   onOpenSettings,
 }) => {
+  const user = getStoredUser();
+  const displayName = user?.name || user?.email || MOCK_TEACHER_PROFILE.name;
+  const avatar = user?.picture_url;
   const menuItems = [
     {
       id: 'home' as SidebarMenuId,
@@ -130,20 +134,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
           type="button"
           onClick={onOpenSettings}
           className="relative rounded-full transition-transform hover:scale-105 cursor-pointer"
-          title={`${MOCK_TEACHER_PROFILE.name} — Configurações`}
+          title={`${displayName} — Configurações`}
         >
-          <img
-            src={MOCK_TEACHER_PROFILE.avatar}
-            alt={MOCK_TEACHER_PROFILE.name}
-            className="w-10 h-10 rounded-full object-cover shadow-sm"
-            style={{
-              borderColor: THEME_COLORS.primary,
-              boxShadow:
-                activeMenu === 'settings'
-                  ? `0 0 0 2px ${THEME_COLORS.bgLight}, 0 0 0 4px ${THEME_COLORS.primary}`
-                  : undefined,
-            }}
-          />
+          {avatar ? (
+            <img
+              src={avatar}
+              alt={displayName}
+              className="w-10 h-10 rounded-full object-cover shadow-sm"
+              style={{
+                borderColor: THEME_COLORS.primary,
+                boxShadow:
+                  activeMenu === 'settings'
+                    ? `0 0 0 2px ${THEME_COLORS.bgLight}, 0 0 0 4px ${THEME_COLORS.primary}`
+                    : undefined,
+              }}
+            />
+          ) : (
+            <span
+              className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm"
+              style={{
+                backgroundColor: THEME_COLORS.lightPrimary,
+                color: THEME_COLORS.primary,
+                boxShadow:
+                  activeMenu === 'settings'
+                    ? `0 0 0 2px ${THEME_COLORS.bgLight}, 0 0 0 4px ${THEME_COLORS.primary}`
+                    : undefined,
+              }}
+            >
+              <UserRound className="w-5 h-5" />
+            </span>
+          )}
         </button>
       </div>
     </aside>

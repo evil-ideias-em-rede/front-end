@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LogOut } from 'lucide-react';
 import { SettingsHeader } from './SettingsHeader';
 import { PersonalDataTab } from './PersonalDataTab';
 import { NotificationsTab } from './NotificationsTab';
 import type { SettingsTabId } from './types';
 import { THEME_COLORS } from '../../constants/colors';
+import { currentUser, getStoredUser } from '../../api/client';
+import type { AuthUser } from '../../api/client';
 
 interface SettingsPageProps {
   onLogout: () => void;
@@ -12,6 +14,11 @@ interface SettingsPageProps {
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
   const [activeTab] = useState<SettingsTabId>('profile');
+  const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
+
+  useEffect(() => {
+    void currentUser().then(setUser).catch(() => undefined);
+  }, []);
 
   return (
     <div
@@ -27,10 +34,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout }) => {
         template-page-in
       "
     >
-      <SettingsHeader />
+      <SettingsHeader
+        user={user}
+        onPictureChange={(picture_url) => setUser((current) => current ? { ...current, picture_url } : current)}
+      />
 
       <div className="pt-2">
-        {activeTab === 'profile' && <PersonalDataTab />}
+        {activeTab === 'profile' && user && (
+          <PersonalDataTab user={user} onUserChange={setUser} />
+        )}
         {activeTab === 'notifications' && <NotificationsTab />}
       </div>
 

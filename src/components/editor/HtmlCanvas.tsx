@@ -20,6 +20,10 @@ interface HtmlCanvasProps {
   onPageChange: (next: number) => void;
   orientation: 'V' | 'H';
   isSlides: boolean;
+  onExportPdf: () => void;
+  exportingPdf?: boolean;
+  /** Incrementado quando o backend devolve uma nova versão do HTML. */
+  serverRevision?: number;
 }
 
 export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
@@ -37,6 +41,9 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
   onPageChange,
   orientation,
   isSlides,
+  onExportPdf,
+  exportingPdf = false,
+  serverRevision = 0,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -77,6 +84,7 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
 
   const [renderedHtml, setRenderedHtml] = useState(html);
   const prevSignatureRef = useRef<string>(layerSignature(html));
+  const prevServerRevisionRef = useRef(serverRevision);
   const prevSelectorRef = useRef<string | null>(null);
 
   // O documento do iframe (srcdoc) só é navegável após o evento de load;
@@ -85,11 +93,13 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
 
   useEffect(() => {
     const sig = layerSignature(html);
-    if (sig !== prevSignatureRef.current) {
+    const serverChanged = serverRevision !== prevServerRevisionRef.current;
+    if (sig !== prevSignatureRef.current || serverChanged) {
       prevSignatureRef.current = sig;
+      prevServerRevisionRef.current = serverRevision;
       setRenderedHtml(html);
     }
-  }, [html]);
+  }, [html, serverRevision]);
 
   const selectedSelector = layers.find((l) => l.id === selectedId)?.selector ?? null;
 
@@ -230,7 +240,7 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
 
         <span className="w-px h-5 bg-black/10 mx-1" />
 
-        {/* Exportar (menu visual — exportação real ainda não implementada) */}
+        {/* Exportar */}
         <div className="relative">
           <button
             type="button"
@@ -262,13 +272,17 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
                   <button
                     key={id}
                     type="button"
-                    onClick={() => setExportOpen(false)}
+                    onClick={() => {
+                      setExportOpen(false);
+                      if (id === 'pdf') onExportPdf();
+                    }}
+                    disabled={id === 'pdf' && exportingPdf}
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold transition-colors hover:bg-black/[0.04] cursor-pointer"
                     style={{ color: THEME_COLORS.textDark }}
-                    title={`Exportar como ${label} (em breve)`}
+                    title={id === 'pdf' ? 'Exportar como PDF' : `Exportar como ${label} (em breve)`}
                   >
                     <Icon className="w-4 h-4" style={{ color: THEME_COLORS.primary }} />
-                    {label}
+                    {id === 'pdf' && exportingPdf ? 'Gerando PDF...' : label}
                   </button>
                 ))}
               </div>

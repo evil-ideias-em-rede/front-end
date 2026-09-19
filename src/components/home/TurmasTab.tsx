@@ -10,9 +10,8 @@ import {
   Clock,
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
-import { getAllTurmas, addTurma } from '../../data/mockData';
-import type { Turma } from '../../types';
 import { CriarTurmaModal } from '../criar/CriarTurmaModal';
+import { useBackendData } from '../../context/BackendDataContext';
 
 const SERIES_ORDER = [
   '6º Ano',
@@ -32,7 +31,7 @@ interface TurmasTabProps {}
 
 export const TurmasTab: React.FC<TurmasTabProps> = () => {
   const navigate = useNavigate();
-  const [turmas, setTurmas] = useState<Turma[]>(getAllTurmas());
+  const { turmas, createTurma } = useBackendData();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
@@ -85,10 +84,15 @@ export const TurmasTab: React.FC<TurmasTabProps> = () => {
         }
 
         if (sortOption === 'alphabetical') {
-          const comparison = a.school.localeCompare(
-            b.school,
+          // A escola sozinha pode empatar (por exemplo, várias turmas da
+          // UFCG). Usa a identidade completa da turma para a ordem ficar
+          // determinística também nesses casos.
+          const aLabel = `${a.school} ${a.series} ${a.idSeries} ${a.disciplina}`;
+          const bLabel = `${b.school} ${b.series} ${b.idSeries} ${b.disciplina}`;
+          const comparison = aLabel.localeCompare(
+            bLabel,
             'pt-BR',
-            { sensitivity: 'base' }
+            { sensitivity: 'base', numeric: true }
           );
 
           return sortDirection === 'asc'
@@ -660,8 +664,7 @@ export const TurmasTab: React.FC<TurmasTabProps> = () => {
         <CriarTurmaModal
           onClose={() => setIsCreateOpen(false)}
           onCreated={(turma) => {
-            addTurma(turma);
-            setTurmas((current) => [...current, turma]);
+            void createTurma(turma).catch((error) => console.error(error));
           }}
         />
       )}
