@@ -10,3 +10,4 @@
 - Remover os placeholders da conta
 - Integrar os casos de uso do front ao back
 - Implementar o login (preferencialmente com o google, mas pode ser email e senha também)
+
