@@ -36,7 +36,7 @@ export const Footer: React.FC = () => {
           
           {/* Brand & Mission using Reusable Logo */}
           <div className="lg:col-span-4 space-y-5">
-            <Logo size="lg" theme="dark" showSubtitle showBadge />
+            <Logo size="lg" theme="dark" showBadge />
             <p className="text-sm leading-relaxed font-medium text-stone-300">
               Plataforma digital para apoiar professores da Educação Básica no planejamento de aulas de política, simulações de debate e pensamento crítico.
             </p>

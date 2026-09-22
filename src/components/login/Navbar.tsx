@@ -30,7 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth }) => {
         <div className="flex items-center justify-between h-24">
           
           {/* Left: Reusable Logo Component */}
-          <Logo href="#hero" showBadge showSubtitle size="md" onClick={() => handleNavClick('#hero')} />
+          <Logo href="#hero" showBadge size="md" onClick={() => handleNavClick('#hero')} />
 
           {/* Center: Capsule Navbar */}
           <nav className="hidden lg:flex items-center gap-1 px-4 py-1.5 rounded-full border border-[#E4D6FF] bg-[#EAE0FF]/50 shadow-xs">

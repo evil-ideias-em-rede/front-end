@@ -46,39 +46,8 @@ export const HeroAuth: React.FC<HeroAuthProps> = ({ onOpenAuth }) => {
               <span>Educação Básica • Cidadania & Pensamento Crítico</span>
             </div>*/}
 
-            {/* Main Headline with Mixed Outline and Solid Typography */}
-            <div className="space-y-1.5">
-
-              <Logo size="lg" theme="light" showSubtitle showBadge />
-              
-              {/* Row 1: Outline text */}
-              <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-none text-outline-dark">
-                Como ensinar
-              </h2>
-              
-              {/* Row 2: Solid text */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-none" style={{ color: THEME_COLORS.textDark }}>
-                política & debates?
-              </h1>
-
-              {/* Row 3: Action punchline with transparent highlight capsule */}
-              <div className="pt-2 flex items-center gap-3">
-                <span className="text-4xl sm:text-5xl lg:text-5xl font-black tracking-tight" style={{ color: THEME_COLORS.textDark }}>
-                  Vamos
-                </span>
-                
-                <span 
-                  className="relative inline-block text-4xl sm:text-5xl lg:text-5xl font-black px-4 py-1 rounded-full border-2 -rotate-4 backdrop-blur-xs"
-                  style={{ 
-                    color: THEME_COLORS.primary,
-                    borderColor: THEME_COLORS.primary,
-                    backgroundColor: 'rgba(226, 221, 240, 0.4)',
-                  }}
-                >
-                  descobrir
-                </span>
-              </div>
-            </div>
+            {/* Logo */}
+            <Logo size="lg" theme="light" showBadge />
 
             {/* Subtitle */}
             <p className="text-base sm:text-lg font-medium leading-relaxed max-w-xl" style={{ color: THEME_COLORS.gray }}>
