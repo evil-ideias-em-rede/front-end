@@ -30,21 +30,8 @@ export const HeroAuth: React.FC<HeroAuthProps> = ({ onOpenAuth }) => {
             <AbstractArtwork />
           </div>
 
-          {/* RIGHT SIDE: Editorial Outline & Solid Typography + Action Buttons */}
+          {/* RIGHT SIDE: Logo + Action Buttons */}
           <div className="lg:col-span-6 ml-4 space-y-7 text-left">
-            
-            {/* Tag Badge (No pure white, uses transparent/semi-transparent background) 
-            <div 
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border backdrop-blur-sm"
-              style={{
-                backgroundColor: 'rgba(226, 221, 240, 0.7)',
-                borderColor: THEME_COLORS.borderLight,
-                color: THEME_COLORS.primary,
-              }}
-            >
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: THEME_COLORS.primary }} />
-              <span>Educação Básica • Cidadania & Pensamento Crítico</span>
-            </div>*/}
 
             {/* Logo */}
             <Logo size="xl" theme="light" showBadge />
@@ -76,10 +63,10 @@ export const HeroAuth: React.FC<HeroAuthProps> = ({ onOpenAuth }) => {
               <button
                 type="button"
                 onClick={() => onOpenAuth('register')}
-                className="px-7 py-3.5 rounded-full font-extrabold text-sm uppercase tracking-wider transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2.5 cursor-pointer shadow-lg shadow-[#AEF03D]/40 hover:shadow-xl hover:shadow-[#AEF03D]/60"
+                className="px-7 py-3.5 rounded-full font-extrabold text-sm uppercase tracking-wider transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2.5 cursor-pointer shadow-lg shadow-[#FF0044]/40 hover:shadow-xl hover:shadow-[#FF0044]/60"
                 style={{ 
                   backgroundColor: THEME_COLORS.secondary,
-                  color: THEME_COLORS.textDark,
+                  color: THEME_COLORS.textLight,
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = THEME_COLORS.secondaryHover)}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = THEME_COLORS.secondary)}

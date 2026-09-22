@@ -368,8 +368,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-3 py-3.5 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#AEF03D]/30"
-              style={{ backgroundColor: THEME_COLORS.secondary, color: THEME_COLORS.textDark }}
+              className="w-full mt-3 py-3.5 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#FF0044]/30"
+              style={{ backgroundColor: THEME_COLORS.secondary, color: THEME_COLORS.textLight }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = THEME_COLORS.secondaryHover)}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = THEME_COLORS.secondary)}
             >

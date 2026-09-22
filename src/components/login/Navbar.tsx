@@ -74,7 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth }) => {
             <button
               type="button"
               onClick={() => onOpenAuth('register')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#AEF03D] hover:bg-[#93CC26] text-[#231942] text-xs font-extrabold uppercase tracking-wider shadow-md shadow-[#AEF03D]/20 transition-all transform active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#FF0044] hover:bg-[#D6003B] text-white text-xs font-extrabold uppercase tracking-wider shadow-md shadow-[#FF0044]/20 transition-all transform active:scale-95 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Criar Conta</span>
