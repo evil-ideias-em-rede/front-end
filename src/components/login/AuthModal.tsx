@@ -194,7 +194,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   type="button"
                   onClick={() => { onClose(); onOpenForgotPassword(); }}
                   className="text-xs font-semibold hover:underline cursor-pointer"
-                  style={{ color: THEME_COLORS.secondary }}
+                  style={{ color: THEME_COLORS.secondaryText }}
                 >
                   Esqueci minha senha
                 </button>

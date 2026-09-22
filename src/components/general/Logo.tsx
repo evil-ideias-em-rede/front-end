@@ -74,10 +74,10 @@ export const Logo: React.FC<LogoProps> = ({
       gap: 'gap-3.5',
     },
     xl: {
-      icon: 'w-24 h-24',
+      icon: 'w-20 h-20',
       iconSvg: 'w-9 h-9',
-      dot: 'w-10 h-10',
-      text: 'text-7xl sm:text-8xl',
+      dot: 'w-8 h-8',
+      text: 'text-6xl sm:text-7xl',
       badge: 'text-xs px-3 py-1',
       subtitle: 'text-base',
       gap: 'gap-4',

@@ -25,6 +25,8 @@ export const THEME_COLORS = {
   // Cor secundária (Verde Limão — frescor/inovação)
   secondary: '#AEF03D',
   lightSecondary: '#ECF9CF',
+  // Verde secundário escuro — para textos sobre fundos claros (o limão puro tem pouco contraste)
+  secondaryText: '#4D7C0F',
 
   // Cor terciária (Amarelo Sol — otimismo/ludicidade)
   sunshine: '#FFB800',

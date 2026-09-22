@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { LogIn, Sparkles, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { LogIn, Sparkles } from 'lucide-react';
 import { AbstractArtwork } from './AbstractArtwork';
 import { THEME_COLORS } from '../../constants/colors';
 import Logo from '../general/Logo';
@@ -47,7 +47,7 @@ export const HeroAuth: React.FC<HeroAuthProps> = ({ onOpenAuth }) => {
             </div>*/}
 
             {/* Logo */}
-            <Logo size="lg" theme="light" showBadge />
+            <Logo size="xl" theme="light" showBadge />
 
             {/* Subtitle */}
             <p className="text-base sm:text-lg font-medium leading-relaxed max-w-xl" style={{ color: THEME_COLORS.gray }}>
@@ -55,7 +55,7 @@ export const HeroAuth: React.FC<HeroAuthProps> = ({ onOpenAuth }) => {
             </p>
 
             {/* Action Buttons */}
-            <div className="pt-2 flex flex-wrap items-center gap-4">
+            <div className="pt-6 flex flex-wrap items-center gap-4">
               
               {/* Primary Action Button (Terracotta / Transparent hover) */}
               <button
@@ -88,25 +88,6 @@ export const HeroAuth: React.FC<HeroAuthProps> = ({ onOpenAuth }) => {
                 <span>Criar Conta de Professor</span>
               </button>
 
-            </div>
-
-            {/* Reassurance Badges */}
-            <div 
-              className="pt-4 border-t flex flex-wrap items-center gap-y-2 gap-x-6 text-xs font-bold"
-              style={{ borderColor: THEME_COLORS.borderLight, color: THEME_COLORS.gray }}
-            >
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4" style={{ color: THEME_COLORS.primary }} />
-                <span>Plural & Não-Partidário</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4" style={{ color: THEME_COLORS.secondary }} />
-                <span>Alinhado à BNCC</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4" style={{ color: THEME_COLORS.primary }} />
-                <span>Gratuito para Educadores</span>
-              </div>
             </div>
 
           </div>
