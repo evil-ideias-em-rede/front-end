@@ -1,7 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { 
-  Mail, Phone, MapPin, Send, CheckCircle2, 
-  Globe, Share2, MessageCircle, ArrowUp
+  FolderGit2, Send, CheckCircle2, ArrowUp
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import { Logo } from '../general/Logo';
@@ -38,66 +37,51 @@ export const Footer: React.FC = () => {
           <div className="lg:col-span-4 space-y-5">
             <Logo size="lg" theme="dark" showBadge />
             <p className="text-sm leading-relaxed font-medium text-stone-300">
-              Plataforma digital para apoiar professores da Educação Básica no planejamento de aulas de política, simulações de debate e pensamento crítico.
+              Ecossistema multiagente que transforma debates da Câmara dos Deputados em materiais didáticos alinhados à BNCC, mantendo o professor como protagonista.
             </p>
             
             <div className="pt-2 space-y-2.5 text-xs font-medium text-stone-300">
               <div className="flex items-center gap-3">
-                <Mail className="w-4 h-4" style={{ color: THEME_COLORS.primary }} />
-                <span>contato@Contraponto.edu.br</span>
+                <FolderGit2 className="w-4 h-4" style={{ color: THEME_COLORS.secondary }} />
+                <a
+                  href="https://github.com/evil-ideias-em-rede"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-white transition-colors"
+                >
+                  github.com/evil-ideias-em-rede
+                </a>
               </div>
-              <div className="flex items-center gap-3">
-                <Phone className="w-4 h-4" style={{ color: THEME_COLORS.secondary }} />
-                <span>+55 (11) 98765-4321 (WhatsApp Educadores)</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <MapPin className="w-4 h-4" style={{ color: THEME_COLORS.primary }} />
-                <span>São Paulo, SP - Brasil • Atuação Nacional</span>
-              </div>
-            </div>
-
-            {/* Social Links */}
-            <div className="flex items-center gap-3 pt-3">
-              <a href="#contato" title="Portal Web" className="w-10 h-10 rounded-full bg-stone-800 hover:bg-stone-700 flex items-center justify-center transition-colors text-stone-300">
-                <Globe className="w-4 h-4" />
-              </a>
-              <a href="#contato" title="Comunidade de Educadores" className="w-10 h-10 rounded-full bg-stone-800 hover:bg-stone-700 flex items-center justify-center transition-colors text-stone-300">
-                <MessageCircle className="w-4 h-4" />
-              </a>
-              <a href="#contato" title="Compartilhar" className="w-10 h-10 rounded-full bg-stone-800 hover:bg-stone-700 flex items-center justify-center transition-colors text-stone-300">
-                <Share2 className="w-4 h-4" />
-              </a>
             </div>
           </div>
 
           {/* Quick Links & Modules */}
-          <div className="lg:col-span-3 space-y-4">
+          <div className="lg:col-span-3 space-y-4 pt-4">
             <h4 className="text-sm font-black text-white uppercase tracking-widest border-b border-stone-800 pb-2">
-              Módulos da Plataforma
+              Navegação
             </h4>
             <ul className="space-y-2.5 text-xs sm:text-sm font-medium text-stone-400">
               <li><a href="#hero" className="hover:text-white transition-colors">Portal do Educador & Login</a></li>
-              <li><span className="text-stone-500">Dashboard & Turmas (Em breve)</span></li>
-              <li><span className="text-stone-500">Templates de Plano de Aula (Em breve)</span></li>
-              <li><span className="text-stone-500">Material Didático & Propostas (Em breve)</span></li>
-              <li><span className="text-stone-500">Brainstorm Pedagógico (Em breve)</span></li>
-              <li><a href="#como-aprimorar" className="hover:text-white transition-colors">Guia de Debates & Mediação</a></li>
+              <li><a href="#sobre-iniciativa" className="hover:text-white transition-colors">Sobre a Iniciativa</a></li>
+              <li><a href="#como-aprimorar" className="hover:text-white transition-colors">Como Funciona</a></li>
+              <li><a href="#sobre-time" className="hover:text-white transition-colors">Equipe de Pesquisa</a></li>
+              <li><a href="#contato" className="hover:text-white transition-colors">Contato</a></li>
             </ul>
           </div>
 
           {/* Quick Support Message Form */}
           <div className="lg:col-span-5 bg-stone-850 p-8 rounded-3xl border border-stone-800 shadow-sm" style={{ backgroundColor: '#2A1D4E' }}>
             <h4 className="text-lg font-black text-white tracking-tight mb-1">
-              Fale com a Equipe Pedagógica
+              Entre em contato
             </h4>
             <p className="text-xs text-stone-400 mb-5 font-medium">
-              Dúvidas pedagógicas, parcerias escolares ou sugestões de temas de debate?
+              Dúvidas sobre a plataforma, parcerias de pesquisa ou sugestões de temas?
             </p>
 
             {messageSent ? (
               <div className="p-4 bg-emerald-950/70 border border-emerald-500/40 rounded-2xl text-emerald-300 text-xs flex items-center gap-2.5">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                <span>Mensagem enviada! Retornaremos em até 24h.</span>
+                <span>Mensagem enviada! Obrigado pelo contato.</span>
               </div>
             ) : (
               <form onSubmit={handleSendMessage} className="space-y-3.5">

@@ -38,7 +38,7 @@ export const HeroAuth: React.FC<HeroAuthProps> = ({ onOpenAuth }) => {
 
             {/* Subtitle */}
             <p className="text-base sm:text-lg font-medium leading-relaxed max-w-xl" style={{ color: THEME_COLORS.gray }}>
-              Auxiliamos professores da <strong>Educação Básica</strong> a construir planos de aula, dinâmicas de debate, teorias políticas e escrita argumentativa de forma plural, ética e engajadora.
+              Apoiamos professores da Educação Básica a transformar audiências reais da Câmara dos Deputados em planos de aula, atividades e materiais didáticos alinhados à BNCC, mantendo o <strong className="underline decoration-[#7C3AED] decoration-2 underline-offset-[2px]">professor como protagonista</strong> de todo o processo.
             </p>
 
             {/* Action Buttons */}

@@ -12,7 +12,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth }) => {
   const navLinks = [
     { label: 'INÍCIO', href: '#hero' },
     { label: 'SOBRE A INICIATIVA', href: '#sobre-iniciativa' },
-    { label: 'COMO ENSINAR', href: '#como-aprimorar' },
+    { label: 'COMO FUNCIONA', href: '#como-aprimorar' },
     { label: 'EQUIPE', href: '#sobre-time' },
     { label: 'CONTATO', href: '#contato' },
   ];
