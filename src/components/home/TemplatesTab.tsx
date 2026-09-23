@@ -6,13 +6,18 @@ import {
   ArrowDownAZ,
   UsersRound,
   Clock,
+  LayoutTemplate,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { THEME_COLORS } from '../../constants/colors';
 import { CriarTemplateModal } from '../criar/CriarTemplateModal';
+import { RenomearModal } from '../criar/RenomearModal';
+import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
 import { HtmlPreview } from '../general/HtmlPreview';
+import { CardMenu } from './CardMenu';
 import { useBackendData } from '../../context/BackendDataContext';
+import type { Template } from '../../types';
 
 type SortOption = 'alphabetical' | 'quantity' | 'recent';
 
@@ -22,9 +27,18 @@ interface TemplatesTabProps {}
 
 export const TemplatesTab: React.FC<TemplatesTabProps> = () => {
   const navigate = useNavigate();
-  const { templates, turmas, createTemplate } = useBackendData();
+  const { templates, turmas, createTemplate, updateTemplate, deleteTemplate } = useBackendData();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const [renameTarget, setRenameTarget] =
+    useState<Template | null>(null);
+
+  const [deleteTarget, setDeleteTarget] =
+    useState<Template | null>(null);
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
 
@@ -219,6 +233,7 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = () => {
             type="button"
             onClick={() => setIsCreateOpen(true)}
             className="
+              platform-create-button
               mt-2
               inline-flex
               items-center
@@ -552,6 +567,7 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = () => {
                     type="button"
                     onClick={() => setIsCreateOpen(true)}
                     className="
+                      platform-create-button
                       w-full
                       flex
                       items-center
@@ -645,6 +661,14 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = () => {
                         fit
                         className="w-full h-full"
                       />
+
+                      <CardMenu
+                        onRename={() => setRenameTarget(tmpl)}
+                        onDelete={() => {
+                          setDeleteError(null);
+                          setDeleteTarget(tmpl);
+                        }}
+                      />
                     </div>
 
                     {/* Content */}
@@ -718,6 +742,48 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = () => {
           onClose={() => setIsCreateOpen(false)}
           onCreated={(template) => {
             void createTemplate(template).catch((error) => console.error(error));
+          }}
+        />
+      )}
+
+      {renameTarget && (
+        <RenomearModal
+          title="Renomear Template"
+          label="Nome do template"
+          icon={<LayoutTemplate className="w-4 h-4" />}
+          initialName={renameTarget.title}
+          placeholder="Ex: Plano de Aula Padrão - Escola XYZ"
+          confirmLabel="Renomear"
+          onClose={() => setRenameTarget(null)}
+          onSave={(name) => {
+            void updateTemplate({
+              ...renameTarget,
+              title: name,
+            }).catch((error) => console.error(error));
+          }}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          title="Excluir template?"
+          message={`Tem certeza que deseja excluir "${deleteTarget.title}"? Esta ação não pode ser desfeita.`}
+          onCancel={() => setDeleteTarget(null)}
+          loading={isDeleting}
+          error={deleteError}
+          onConfirm={() => {
+            if (isDeleting) return;
+            setIsDeleting(true);
+            setDeleteError(null);
+            void deleteTemplate(deleteTarget.id)
+              .then(() => {
+                setIsDeleting(false);
+                setDeleteTarget(null);
+              })
+              .catch((error) => {
+                setDeleteError(error instanceof Error ? error.message : 'Não foi possível excluir o template.');
+                setIsDeleting(false);
+              });
           }}
         />
       )}

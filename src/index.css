@@ -352,3 +352,66 @@
   background: linear-gradient(90deg, transparent, #7C3AED, transparent);
   animation: progress-slide 1.3s ease-in-out infinite;
 }
+
+/* Todos os botões do núcleo usam a mesma silhueta arredondada da landing. */
+.home-theme button {
+  border-radius: 9999px !important;
+}
+
+/* Atalhos de criação e cards acionáveis mantêm sua aparência própria. */
+.home-theme button.platform-create-button {
+  border-radius: 0.5rem !important;
+}
+
+.home-theme button.platform-sidebar-button {
+  border-radius: 0.25rem !important;
+}
+
+.home-theme button.platform-shortcut-card {
+  border-radius: 1rem !important;
+}
+
+/* CTAs do núcleo seguem a mesma linguagem dos botões da landing page. */
+.home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[style*="background-color: rgb(124, 58, 237)"],
+.home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[style*="background-color: rgb(255, 0, 68)"],
+.home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[class*="bg-[#7C3AED]"],
+.home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[class*="bg-[#FF0044]"] {
+  border-radius: 9999px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.22);
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+.home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[style*="background-color: rgb(124, 58, 237)"]:hover,
+.home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[style*="background-color: rgb(255, 0, 68)"]:hover,
+.home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[class*="bg-[#7C3AED]"]:hover,
+.home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[class*="bg-[#FF0044]"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(124, 58, 237, 0.3);
+}
+
+.home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[style*="background-color: rgb(124, 58, 237)"]:active,
+.home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[style*="background-color: rgb(255, 0, 68)"]:active,
+.home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[class*="bg-[#7C3AED]"]:active,
+.home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[class*="bg-[#FF0044]"]:active {
+  transform: translateY(0);
+}
+
+/* Estes elementos são cards/atalhos, não CTAs: preservam o desenho original. */
+.home-theme button.platform-create-button {
+  border-radius: 0.5rem !important;
+  font-weight: 700 !important;
+  letter-spacing: normal;
+  text-transform: none;
+  box-shadow: none;
+}
+
+.home-theme button.platform-shortcut-card {
+  border-radius: 1rem !important;
+  font-weight: inherit !important;
+  letter-spacing: normal;
+  text-transform: none;
+  box-shadow: var(--tw-shadow, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+}

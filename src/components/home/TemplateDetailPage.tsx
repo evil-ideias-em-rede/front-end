@@ -44,7 +44,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = ({
 }) => {
   return (
     <aside
-      className="w-72 shrink-0 flex flex-col border-r sticky top-0 h-screen overflow-hidden bg-white/60"
+      className="w-72 shrink-0 flex flex-col border-r h-full overflow-hidden bg-white/60"
       style={{ borderColor: THEME_COLORS.borderLight }}
     >
       <div className="p-5 pb-3 flex items-center justify-between">
@@ -63,7 +63,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = ({
               key={t.id}
               type="button"
               onClick={() => onSelect(t.id)}
-              className={`w-full flex items-center gap-3 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+              className={`platform-sidebar-button w-full flex items-center gap-3 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                 isActive
                   ? 'bg-[#7C3AED] text-white shadow-sm'
                   : 'bg-white/60 hover:scale-[1.01]'
@@ -102,7 +102,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = ({
         <button
           type="button"
           onClick={onCreate}
-          className="w-full flex items-center gap-3 p-3 rounded-xl border transition-all hover:scale-[1.01] cursor-pointer"
+          className="platform-sidebar-button w-full flex items-center gap-3 p-3 rounded-xl border transition-all hover:scale-[1.01] cursor-pointer"
           style={{
             backgroundColor: THEME_COLORS.lightPrimary,
             borderColor: THEME_COLORS.lightPrimary,
@@ -138,7 +138,7 @@ export const TemplateDetailPage: React.FC = () => {
 
   if (!template) {
     return (
-      <div className="flex min-h-screen w-full template-page-in">
+      <div className="flex h-full min-h-0 w-full template-page-in">
         <TemplatesSidebar
           templates={templates}
           activeId={id ?? ''}
@@ -162,7 +162,7 @@ export const TemplateDetailPage: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen w-full template-page-in">
+    <div className="flex h-full min-h-0 w-full template-page-in">
       <TemplatesSidebar
         templates={templates}
         activeId={template.id}
@@ -170,7 +170,7 @@ export const TemplateDetailPage: React.FC = () => {
         onCreate={() => setIsCreateOpen(true)}
       />
 
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col overflow-y-auto">
         {/* ========================================================= */}
         {/* HEADER */}
         {/* ========================================================= */}

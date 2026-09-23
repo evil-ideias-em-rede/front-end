@@ -92,7 +92,7 @@ export const Logo: React.FC<LogoProps> = ({
       viewBox="0 0 100 100"
       xmlns="http://www.w3.org/2000/svg"
       className={`${variant === 'icon-only' ? currentSize.icon : currentSize.dot} rotate-30 shrink-0 self-end mb-[0.08em] select-none transition-transform duration-200 group-hover:scale-105`}
-      fill={THEME_COLORS.star}
+      fill={isDarkBg ? THEME_COLORS.textLight : THEME_COLORS.star}
       aria-hidden="true"
     >
       <path d="M50 0 L58 35 L90 20 L68 46 L100 50 L68 54 L90 80 L58 65 L50 100 L42 65 L10 80 L32 54 L0 50 L32 46 L10 20 L42 35 Z" />

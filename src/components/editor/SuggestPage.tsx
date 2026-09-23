@@ -345,7 +345,7 @@ export const SuggestPage: React.FC = () => {
 
   return (
     <div
-      className="flex-grow h-screen flex flex-col min-w-0 overflow-hidden"
+      className="flex-grow h-full flex flex-col min-w-0 overflow-hidden"
       style={{
         background: `linear-gradient(
           to bottom,

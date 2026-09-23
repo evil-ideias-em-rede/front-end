@@ -7,20 +7,34 @@ import {
   ArrowDownAZ,
   Clock,
   Filter,
+  BookMarked,
 } from 'lucide-react';
 
 import { THEME_COLORS } from '../../constants/colors';
 import { CriarMaterialModal } from '../criar/CriarMaterialModal';
+import { RenomearModal } from '../criar/RenomearModal';
+import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
 import { HtmlPreview } from '../general/HtmlPreview';
+import { CardMenu } from './CardMenu';
 import { useBackendData } from '../../context/BackendDataContext';
+import type { Material } from '../../types';
 
 interface MateriaisTabProps {}
 
 export const MateriaisTab: React.FC<MateriaisTabProps> = () => {
   const navigate = useNavigate();
-  const { materiais, turmas, createMaterial } = useBackendData();
+  const { materiais, turmas, createMaterial, updateMaterial, deleteMaterial } = useBackendData();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const [renameTarget, setRenameTarget] =
+    useState<Material | null>(null);
+
+  const [deleteTarget, setDeleteTarget] =
+    useState<Material | null>(null);
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
 
@@ -226,6 +240,7 @@ export const MateriaisTab: React.FC<MateriaisTabProps> = () => {
             type="button"
             onClick={() => setIsCreateOpen(true)}
             className="
+              platform-create-button
               mt-2
               inline-flex
               items-center
@@ -647,6 +662,7 @@ export const MateriaisTab: React.FC<MateriaisTabProps> = () => {
                     type="button"
                     onClick={() => setIsCreateOpen(true)}
                     className="
+                      platform-create-button
                       w-full
                       flex
                       items-center
@@ -746,6 +762,14 @@ export const MateriaisTab: React.FC<MateriaisTabProps> = () => {
                         refWidth={material.orientation === 'H' ? 1900 : 900}
                         refHeight={material.orientation === 'H' ? 900 : 1273}
                         className="w-full h-full"
+                      />
+
+                      <CardMenu
+                        onRename={() => setRenameTarget(material)}
+                        onDelete={() => {
+                          setDeleteError(null);
+                          setDeleteTarget(material);
+                        }}
                       />
                     </div>
 
@@ -875,6 +899,48 @@ export const MateriaisTab: React.FC<MateriaisTabProps> = () => {
           onClose={() => setIsCreateOpen(false)}
           onCreated={(material) => {
             void createMaterial(material).catch((error) => console.error(error));
+          }}
+        />
+      )}
+
+      {renameTarget && (
+        <RenomearModal
+          title="Renomear Material"
+          label="Nome do material"
+          icon={<BookMarked className="w-4 h-4" />}
+          initialName={renameTarget.title}
+          placeholder="Ex: Livro de Português Ensino Médio Vol. 1"
+          confirmLabel="Renomear"
+          onClose={() => setRenameTarget(null)}
+          onSave={(name) => {
+            void updateMaterial({
+              ...renameTarget,
+              title: name,
+            }).catch((error) => console.error(error));
+          }}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          title="Excluir material?"
+          message={`Tem certeza que deseja excluir "${deleteTarget.title}"? Esta ação não pode ser desfeita.`}
+          onCancel={() => setDeleteTarget(null)}
+          loading={isDeleting}
+          error={deleteError}
+          onConfirm={() => {
+            if (isDeleting) return;
+            setIsDeleting(true);
+            setDeleteError(null);
+            void deleteMaterial(deleteTarget.id)
+              .then(() => {
+                setIsDeleting(false);
+                setDeleteTarget(null);
+              })
+              .catch((error) => {
+                setDeleteError(error instanceof Error ? error.message : 'Não foi possível excluir o material.');
+                setIsDeleting(false);
+              });
           }}
         />
       )}

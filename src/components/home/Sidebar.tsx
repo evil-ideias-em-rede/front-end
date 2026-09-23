@@ -57,15 +57,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className="h-screen sticky top-0 w-20 shrink-0 border-r flex flex-col justify-center z-30 select-none relative"
+      className="fixed inset-y-0 left-0 h-screen w-[5.5rem] flex flex-col justify-center z-30 select-none overflow-hidden backdrop-blur-xl"
       style={{
-        backgroundColor: 'transparent',
-        borderColor: THEME_COLORS.borderLight,
+        backgroundColor: THEME_COLORS.bgDark,
+        borderColor: THEME_COLORS.borderDark,
       }}
     >
       {/* Top Brand (symbol only) */}
       <div className="p-4 pb-2 mt-2 flex justify-center">
-        <Logo variant="icon-only" size="sm" />
+        <Logo variant="icon-only" size="sm" theme="dark" />
       </div>
 
       {/* Create / New Action Button (fixed, same as the other items) */}
@@ -84,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <span
             className="text-[10px] tracking-tight leading-tight"
-            style={{ color: THEME_COLORS.textDark }}
+            style={{ color: THEME_COLORS.textLight }}
           >
             Criar
           </span>
@@ -109,17 +109,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   isActive ? 'scale-105' : ''
                 }`}
                 style={{
-                  backgroundColor: isActive ? THEME_COLORS.primary : 'rgba(226, 221, 240, 0.0)',
-                  color: isActive ? THEME_COLORS.textLight : THEME_COLORS.gray,
+                  backgroundColor: isActive ? THEME_COLORS.textLight : 'rgba(226, 221, 240, 0.0)',
+                  color: isActive ? THEME_COLORS.bgDark : THEME_COLORS.textLight,
                 }}
               >
                 <Icon className="w-5 h-5 stroke-[2.5]" />
               </div>
               <span
-                className={`text-[10px] tracking-tight leading-tight text-center ${
-                  isActive ? 'text-[#7C3AED]' : ''
-                }`}
-                style={{ color: isActive ? THEME_COLORS.primary : THEME_COLORS.textDark }}
+                className="text-[10px] tracking-tight leading-tight text-center"
+                style={{ color: THEME_COLORS.textLight }}
               >
                 {item.label}
               </span>
@@ -145,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 borderColor: THEME_COLORS.primary,
                 boxShadow:
                   activeMenu === 'settings'
-                    ? `0 0 0 2px ${THEME_COLORS.bgLight}, 0 0 0 4px ${THEME_COLORS.primary}`
+                    ? `0 0 0 2px ${THEME_COLORS.bgDark}, 0 0 0 4px ${THEME_COLORS.primary}`
                     : undefined,
               }}
             />
@@ -157,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 color: THEME_COLORS.primary,
                 boxShadow:
                   activeMenu === 'settings'
-                    ? `0 0 0 2px ${THEME_COLORS.bgLight}, 0 0 0 4px ${THEME_COLORS.primary}`
+                    ? `0 0 0 2px ${THEME_COLORS.bgDark}, 0 0 0 4px ${THEME_COLORS.primary}`
                     : undefined,
               }}
             >

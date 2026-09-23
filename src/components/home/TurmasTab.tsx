@@ -8,10 +8,15 @@ import {
   Filter,
   ChevronDown,
   Clock,
+  Book,
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import { CriarTurmaModal } from '../criar/CriarTurmaModal';
+import { RenomearModal } from '../criar/RenomearModal';
+import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
+import { CardMenu } from './CardMenu';
 import { useBackendData } from '../../context/BackendDataContext';
+import type { Turma } from '../../types';
 
 const SERIES_ORDER = [
   '6º Ano',
@@ -31,9 +36,18 @@ interface TurmasTabProps {}
 
 export const TurmasTab: React.FC<TurmasTabProps> = () => {
   const navigate = useNavigate();
-  const { turmas, createTurma } = useBackendData();
+  const { turmas, createTurma, updateTurma, deleteTurma } = useBackendData();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const [renameTarget, setRenameTarget] =
+    useState<Turma | null>(null);
+
+  const [deleteTarget, setDeleteTarget] =
+    useState<Turma | null>(null);
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
 
@@ -209,7 +223,7 @@ export const TurmasTab: React.FC<TurmasTabProps> = () => {
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
-            className="mt-2 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:scale-105 cursor-pointer"
+            className="platform-create-button mt-2 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:scale-105 cursor-pointer"
             style={{
               backgroundColor: THEME_COLORS.primary,
             }}
@@ -548,6 +562,7 @@ export const TurmasTab: React.FC<TurmasTabProps> = () => {
                   type="button"
                   onClick={() => setIsCreateOpen(true)}
                   className="
+                    platform-create-button
                     mt-2
                     flex
                     items-center
@@ -618,6 +633,14 @@ export const TurmasTab: React.FC<TurmasTabProps> = () => {
                   ) : (
                     <></>
                   )}
+
+                  <CardMenu
+                    onRename={() => setRenameTarget(turma)}
+                    onDelete={() => {
+                      setDeleteError(null);
+                      setDeleteTarget(turma);
+                    }}
+                  />
                 </div>
 
                   <div className="p-6 flex flex-col flex-1 space-y-4">
@@ -665,6 +688,48 @@ export const TurmasTab: React.FC<TurmasTabProps> = () => {
           onClose={() => setIsCreateOpen(false)}
           onCreated={(turma) => {
             void createTurma(turma).catch((error) => console.error(error));
+          }}
+        />
+      )}
+
+      {renameTarget && (
+        <RenomearModal
+          title="Renomear Turma"
+          label="Disciplina da turma"
+          icon={<Book className="w-4 h-4" />}
+          initialName={renameTarget.disciplina}
+          placeholder="Ex: Português"
+          confirmLabel="Renomear"
+          onClose={() => setRenameTarget(null)}
+          onSave={(name) => {
+            void updateTurma({
+              ...renameTarget,
+              disciplina: name,
+            }).catch((error) => console.error(error));
+          }}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          title="Excluir turma?"
+          message={`Tem certeza que deseja excluir a turma "${deleteTarget.series} - ${deleteTarget.disciplina}"? Esta ação não pode ser desfeita.`}
+          onCancel={() => setDeleteTarget(null)}
+          loading={isDeleting}
+          error={deleteError}
+          onConfirm={() => {
+            if (isDeleting) return;
+            setIsDeleting(true);
+            setDeleteError(null);
+            void deleteTurma(deleteTarget.id)
+              .then(() => {
+                setIsDeleting(false);
+                setDeleteTarget(null);
+              })
+              .catch((error) => {
+                setDeleteError(error instanceof Error ? error.message : 'Não foi possível excluir a turma.');
+                setIsDeleting(false);
+              });
           }}
         />
       )}

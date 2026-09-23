@@ -8,6 +8,8 @@ import { LayerSidebar } from './LayerSidebar';
 import { HtmlCanvas } from './HtmlCanvas';
 import { ChatPanel } from './ChatPanel';
 import type { ChatMessage } from './ChatPanel';
+import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
+import { useBackendData } from '../../context/BackendDataContext';
 import * as api from '../../api/client';
 
 function backendAgentFromType(type?: string): string {
@@ -33,6 +35,18 @@ export const MaterialEditorPage: React.FC = () => {
 
   // Título próprio do material, editável pelo professor no toolbar.
   const [documentTitle, setDocumentTitle] = useState(initialTitle);
+
+  const { materiais, deleteMaterial } = useBackendData();
+
+  // Material salvo correspondente ao título de abertura, se existir.
+  const savedMaterial = useMemo(
+    () => materiais.find((material) => material.title === initialTitle),
+    [materiais, initialTitle]
+  );
+
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Slides editam em folha horizontal (paisagem); demais formatos em retrato.
   const orientation: 'V' | 'H' = materialType === 'slides' ? 'H' : 'V';
@@ -271,7 +285,7 @@ export const MaterialEditorPage: React.FC = () => {
 
   return (
     <div
-      className="flex-grow h-screen flex flex-col min-w-0 overflow-hidden"
+      className="flex-grow h-full flex flex-col min-w-0 overflow-hidden"
       style={{
         background: `linear-gradient(
           to bottom,
@@ -317,6 +331,14 @@ export const MaterialEditorPage: React.FC = () => {
           onExportPdf={() => void handleExportPdf()}
           exportingPdf={exportingPdf}
           serverRevision={serverRevision}
+          onDelete={
+            savedMaterial
+              ? () => {
+                  setDeleteError(null);
+                  setIsDeleteOpen(true);
+                }
+              : undefined
+          }
         />
 
         <ChatPanel
@@ -331,6 +353,29 @@ export const MaterialEditorPage: React.FC = () => {
           contextIcon={selectedLayer ? 'layer' : 'document'}
         />
       </div>
+
+      {isDeleteOpen && savedMaterial && (
+        <ConfirmDeleteModal
+          title="Excluir material?"
+          message={`Tem certeza que deseja excluir "${savedMaterial.title}"? Esta ação não pode ser desfeita.`}
+          onCancel={() => setIsDeleteOpen(false)}
+          loading={isDeleting}
+          error={deleteError}
+          onConfirm={() => {
+            if (isDeleting) return;
+            setIsDeleting(true);
+            setDeleteError(null);
+            void deleteMaterial(savedMaterial.id)
+              .then(() => {
+                navigate('/home/materiais', { replace: true });
+              })
+              .catch((error) => {
+                setDeleteError(error instanceof Error ? error.message : 'Não foi possível excluir o material.');
+                setIsDeleting(false);
+              });
+          }}
+        />
+      )}
     </div>
   );
 };
