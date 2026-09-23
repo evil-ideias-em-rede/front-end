@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { HeroAuth } from './components/login/HeroAuth';
 import { AboutInitiative } from './components/login/AboutInitiative';
 import { TeachingGuide } from './components/login/TeachingGuide';
-import { TeamSection } from './components/login/TeamSection';
 import { Footer } from './components/login/Footer';
 import { AuthModal } from './components/login/AuthModal';
 import { ForgotPasswordModal } from './components/login/ForgotPasswordModal';
@@ -51,9 +50,6 @@ export function App() {
 
         {/* Como Funciona o Contraponto */}
         <TeachingGuide />
-
-        {/* Equipe de Pesquisa */}
-        <TeamSection />
       </main>
 
       {/* Footer com Contatos */}

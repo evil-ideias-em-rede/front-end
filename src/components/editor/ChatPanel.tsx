@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Send, FileText, X } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
-import { Logo } from '../general/Logo';
 
 export interface ChatMessage {
   id: string;

@@ -64,7 +64,6 @@ export const Footer: React.FC = () => {
               <li><a href="#hero" className="hover:text-white transition-colors">Portal do Educador & Login</a></li>
               <li><a href="#sobre-iniciativa" className="hover:text-white transition-colors">Sobre a Iniciativa</a></li>
               <li><a href="#como-aprimorar" className="hover:text-white transition-colors">Como Funciona</a></li>
-              <li><a href="#sobre-time" className="hover:text-white transition-colors">Equipe de Pesquisa</a></li>
               <li><a href="#contato" className="hover:text-white transition-colors">Contato</a></li>
             </ul>
           </div>
@@ -75,7 +74,7 @@ export const Footer: React.FC = () => {
               Entre em contato
             </h4>
             <p className="text-xs text-stone-400 mb-5 font-medium">
-              Dúvidas sobre a plataforma, parcerias de pesquisa ou sugestões de temas?
+              Dúvidas sobre a plataforma ou sugestões de temas?
             </p>
 
             {messageSent ? (
@@ -129,7 +128,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium text-stone-400">
-          <p>© 2026 Contraponto - Plataforma Educacional para o Ensino Básico. Todos os direitos reservados.</p>
+          <p>© 2026 Contraponto. Todos os direitos reservados.</p>
           
           <div className="flex items-center gap-6">
             <span className="hover:text-stone-300 cursor-pointer">Termos de Uso</span>
