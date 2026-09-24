@@ -17,8 +17,11 @@ createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/home" element={<BackendDataProvider><DashboardLayout /></BackendDataProvider>}>
+          <Route path="turmas" element={null} />
           <Route path="turmas/:id" element={<TurmaDetailPage />} />
+          <Route path="templates" element={null} />
           <Route path="templates/:id" element={<TemplateDetailPage />} />
+          <Route path="materiais" element={null} />
           <Route path="materiais/:id" element={<MaterialDetailPage />} />
           <Route path="editor" element={<SuggestPage />} />
           <Route path="editor/material" element={<MaterialEditorPage />} />

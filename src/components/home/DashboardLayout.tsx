@@ -42,7 +42,15 @@ export const DashboardLayout: React.FC = () => {
 
   const handleSelectMenu = (menu: SidebarMenuId) => {
     setActiveMenu(menu);
-    navigate('/home');
+    const destinations: Record<SidebarMenuId, string> = {
+      criar: '/home/editor?type=brainstorm',
+      settings: '/home',
+      home: '/home',
+      turmas: '/home/turmas',
+      templates: '/home/templates',
+      materiais: '/home/materiais',
+    };
+    navigate(destinations[menu]);
   };
 
   const backgroundArtwork = (
