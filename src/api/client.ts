@@ -79,7 +79,20 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getAccessToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  let response: Response | undefined;
+  let networkError: unknown;
+  // O backend pode levar alguns segundos para ficar disponível depois de um
+  // rebuild/restart do Docker. Repetimos somente falhas de rede transitórias.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+      break;
+    } catch (error) {
+      networkError = error;
+      if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 700 * (attempt + 1)));
+    }
+  }
+  if (!response) throw networkError instanceof Error ? networkError : new Error('Não foi possível conectar ao servidor.');
   const contentType = response.headers.get('content-type') ?? '';
   const body = contentType.includes('application/json') ? await response.json() : await response.text();
   if (!response.ok) {
@@ -196,6 +209,10 @@ export async function getWorkflowSession(sessionId: string): Promise<WorkflowSes
   return request<WorkflowSession>(`/api/workflow/sessions/${encodeURIComponent(sessionId)}`);
 }
 
+export async function deleteWorkflowSession(sessionId: string): Promise<void> {
+  await request(`/api/workflow/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+}
+
 export async function listWorkflowSessions(userId = 10): Promise<WorkflowSessionSummary[]> {
   return request<WorkflowSessionSummary[]>(`/api/workflow/sessions?user_id=${userId}`);
 }
@@ -210,10 +227,15 @@ export async function updateWorkflowStage(
   });
 }
 
-export async function sendWorkflowMessage(sessionId: string, text: string, agent_name: string): Promise<any> {
+export async function sendWorkflowMessage(
+  sessionId: string,
+  text: string,
+  agent_name: string,
+  hidden = false,
+): Promise<any> {
   return request(`/api/workflow/sessions/${sessionId}/messages`, {
     method: 'POST',
-    body: JSON.stringify({ text, agent_name }),
+    body: JSON.stringify({ text, agent_name, hidden }),
   });
 }
 

@@ -41,6 +41,7 @@ export const CriarMaterialModal: React.FC<CriarMaterialModalProps> = ({
   const [isAutoral, setIsAutoral] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
+  const [fileContent, setFileContent] = useState('');
   const [saved, setSaved] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,7 +61,14 @@ export const CriarMaterialModal: React.FC<CriarMaterialModalProps> = ({
   };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFileName(e.target.files?.[0]?.name ?? '');
+    const file = e.target.files?.[0];
+    setFileName(file?.name ?? '');
+    setFileContent('');
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setFileContent(String(reader.result || ''));
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -78,6 +86,8 @@ export const CriarMaterialModal: React.FC<CriarMaterialModalProps> = ({
         type,
         category,
         fileType,
+        fileName: fileName || undefined,
+        fileContent: fileContent || undefined,
         qtd: selectedKeys.length,
         htmlContent:
           fileType === 'html'

@@ -14,6 +14,7 @@ interface AudienciaDetalhesProps {
   tipoMaterial: string | null;
   error: string | null;
   onProceed: () => void;
+  proceedDisabled?: boolean;
   onSelectAudiencia: (id: string) => void;
 }
 
@@ -24,6 +25,7 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
   tipoMaterial,
   error,
   onProceed,
+  proceedDisabled = false,
   onSelectAudiencia,
 }) => {
   const [participanteSelecionado, setParticipanteSelecionado] = useState<string | null>(null);
@@ -291,10 +293,11 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
           <button
             type="button"
             onClick={onProceed}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black text-white transition-all hover:scale-[1.02] cursor-pointer shadow-md"
+            disabled={proceedDisabled}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black text-white transition-all hover:scale-[1.02] cursor-pointer shadow-md disabled:opacity-50 disabled:cursor-wait disabled:hover:scale-100"
             style={{ backgroundColor: THEME_COLORS.primary }}
           >
-            Usar essa audiência como fonte
+            {proceedDisabled ? 'Aguardando resposta...' : 'Usar essa audiência como fonte'}
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
