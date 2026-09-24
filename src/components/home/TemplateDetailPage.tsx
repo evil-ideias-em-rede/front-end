@@ -341,9 +341,9 @@ export const TemplateDetailPage: React.FC = () => {
         <CriarTemplateModal
           turmas={turmas}
           onClose={() => setIsCreateOpen(false)}
-          onCreated={(newTemplate) => {
-            void createTemplate(newTemplate).then((saved) => navigate(`/home/templates/${saved.id}`)).catch((error) => console.error(error));
-          }}
+          onCreated={(newTemplate) =>
+            createTemplate(newTemplate).then((saved) => navigate(`/home/templates/${saved.id}`))
+          }
         />
       )}
 

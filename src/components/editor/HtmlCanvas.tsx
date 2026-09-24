@@ -22,7 +22,6 @@ interface HtmlCanvasProps {
   orientation: 'V' | 'H';
   isSlides: boolean;
   onExportPdf: () => void;
-  onDelete?: () => void;
   exportingPdf?: boolean;
   /** Quando definido, exibe o botão de lixeira no menu superior. */
   onDelete?: () => void;
@@ -49,7 +48,6 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
   onExportPdf,
   onDelete,
   exportingPdf = false,
-  onDelete,
   serverRevision = 0,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -297,24 +295,15 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
             </>
           )}
         </div>
-<<<<<<< HEAD
-
-=======
->>>>>>> 35e464a (add: adicionando suporte aos arquivos de pdf e html em materiais)
         {onDelete && (
           <button
             type="button"
             onClick={onDelete}
-<<<<<<< HEAD
-            className="p-2 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+            disabled={navigationLocked}
+            className="p-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ color: '#dc2626' }}
             title="Excluir material"
             aria-label="Excluir material"
-=======
-            disabled={navigationLocked}
-            className="p-2 rounded-lg text-stone-500 hover:bg-red-50 hover:text-red-600 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Excluir plano de aula"
->>>>>>> 35e464a (add: adicionando suporte aos arquivos de pdf e html em materiais)
           >
             <Trash2 className="w-4 h-4" />
           </button>

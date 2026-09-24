@@ -1,11 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   BookMarked,
   Download,
   FileText,
-  Pencil,
-  PencilRuler,
   Plus,
   Trash2,
   UsersRound,
@@ -14,10 +12,10 @@ import { THEME_COLORS } from '../../constants/colors';
 import { MATERIAL_COLORS } from '../../data/mockData';
 import { useBackendData } from '../../context/BackendDataContext';
 import type { Material, MaterialType } from '../../types';
-import { downloadMaterialHtml } from '../../utils/downloadMaterial';
+import * as api from '../../api/client';
+import { parseHtmlPages } from '../../utils/htmlLayers';
 import { HtmlPreview } from '../general/HtmlPreview';
 import { CriarMaterialModal } from '../criar/CriarMaterialModal';
-import { EditarMaterialModal } from '../criar/EditarMaterialModal';
 import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
 
 const TYPE_LABELS: Record<MaterialType, string> = {
@@ -124,13 +122,21 @@ export const MaterialDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
-  const { materiais, turmas, createMaterial, updateMaterial, deleteMaterial } = useBackendData();
+  const { materiais, turmas, createMaterial, deleteMaterial } = useBackendData();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const material = useMemo(() => (id ? materiais.find((item) => item.id === id) : undefined), [id, materiais]);
   const turmasAssociadas = useMemo(() => material?.turmaIds ? turmas.filter((turma) => material.turmaIds?.includes(turma.id)) : [], [material, turmas]);
+  const pages = useMemo(() => (material?.fileType === 'html' ? parseHtmlPages(material.htmlContent) : []), [material]);
+  const safePageIndex = Math.min(pageIndex, Math.max(0, pages.length - 1));
+
+  useEffect(() => {
+    setPageIndex(0);
+    setDownloadError(null);
+  }, [material?.id]);
 
   if (!material) {
     return (
@@ -158,6 +164,31 @@ export const MaterialDetailPage: React.FC = () => {
   }
 
   const isLandscape = material.orientation === 'H';
+
+  const handleDownload = async (format: api.MaterialDownloadFormat) => {
+    setDownloadError(null);
+    try {
+      await api.downloadMaterialFile(material.id, format);
+    } catch (cause) {
+      setDownloadError(cause instanceof Error ? cause.message : 'Não foi possível baixar o arquivo.');
+    }
+  };
+
+  const downloadButton = (format: api.MaterialDownloadFormat, label: string) => (
+    <button
+      type="button"
+      onClick={() => void handleDownload(format)}
+      title={`Baixar como ${label}`}
+      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all hover:scale-105 cursor-pointer"
+      style={{
+        backgroundColor: THEME_COLORS.bgLight,
+        borderColor: THEME_COLORS.borderLight,
+        color: THEME_COLORS.textDark,
+      }}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <div className="flex h-full min-h-0 w-full template-page-in">
@@ -187,20 +218,6 @@ export const MaterialDetailPage: React.FC = () => {
                   {material.title}
                 </h1>
 
-                <button
-                  type="button"
-                  onClick={() => setIsEditOpen(true)}
-                  aria-label="Editar material"
-                  title="Editar material"
-                  className="p-2.5 rounded-xl transition-all hover:scale-105 cursor-pointer border"
-                  style={{
-                    backgroundColor: THEME_COLORS.bgLight,
-                    borderColor: THEME_COLORS.borderLight,
-                    color: THEME_COLORS.primary,
-                  }}
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
 
                 <button
                   type="button"
@@ -268,92 +285,50 @@ export const MaterialDetailPage: React.FC = () => {
 
               {material.fileType === 'html' && (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => downloadMaterialHtml(material)}
-                    title="Baixar como HTML"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all hover:scale-105 cursor-pointer"
-                    style={{
-                      backgroundColor: THEME_COLORS.bgLight,
-                      borderColor: THEME_COLORS.borderLight,
-                      color: THEME_COLORS.textDark,
-                    }}
-                  >
-                    HTML
-                  </button>
-
-                  <button
-                    type="button"
-                    title="Baixar como PDF"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all hover:scale-105 cursor-pointer"
-                    style={{
-                      backgroundColor: THEME_COLORS.bgLight,
-                      borderColor: THEME_COLORS.borderLight,
-                      color: THEME_COLORS.textDark,
-                    }}
-                  >
-                    PDF
-                  </button>
-
-                  <button
-                    type="button"
-                    title="Baixar como DOCX"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all hover:scale-105 cursor-pointer"
-                    style={{
-                      backgroundColor: THEME_COLORS.bgLight,
-                      borderColor: THEME_COLORS.borderLight,
-                      color: THEME_COLORS.textDark,
-                    }}
-                  >
-                    DOCX
-                  </button>
-
-                  {material.type === 'slide' && (
-                    <button
-                      type="button"
-                      title="Baixar como PPTX"
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all hover:scale-105 cursor-pointer"
-                      style={{
-                        backgroundColor: THEME_COLORS.bgLight,
-                        borderColor: THEME_COLORS.borderLight,
-                        color: THEME_COLORS.textDark,
-                      }}
-                    >
-                      PPTX
-                    </button>
-                  )}
+                  {downloadButton('html', 'HTML')}
+                  {downloadButton('pdf', 'PDF')}
+                  {downloadButton('docx', 'DOCX')}
                 </>
               )}
 
-              {material.fileType === 'pdf' && (
-                <button
-                  type="button"
-                  title="Baixar como PDF"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all hover:scale-105 cursor-pointer"
-                  style={{
-                    backgroundColor: THEME_COLORS.bgLight,
-                    borderColor: THEME_COLORS.borderLight,
-                    color: THEME_COLORS.textDark,
-                  }}
-                >
-                  PDF
-                </button>
-              )}
+              {material.fileType === 'pdf' && downloadButton('pdf', 'PDF')}
+              {material.fileType === 'docx' && downloadButton('docx', 'DOCX')}
 
               <span className="flex-1" />
 
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(`/home/editor/material?title=${encodeURIComponent(material.title)}`)
-                }
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider text-white transition-all hover:scale-105 cursor-pointer"
-                style={{ backgroundColor: THEME_COLORS.secondary }}
-              >
-                <PencilRuler className="w-4 h-4" />
-                Editar material
-              </button>
             </div>
+
+            {downloadError && (
+              <p className="border-b border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700">
+                {downloadError}
+              </p>
+            )}
+
+            {pages.length > 1 && (
+              <div className="flex items-center justify-center gap-3 border-b px-4 py-2" style={{ borderColor: THEME_COLORS.borderLight }}>
+                <button
+                  type="button"
+                  onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
+                  disabled={safePageIndex === 0}
+                  className="rounded-lg border p-1.5 disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ borderColor: THEME_COLORS.borderLight, color: THEME_COLORS.textDark }}
+                  aria-label="Página anterior"
+                >
+                  ‹
+                </button>
+                <span className="text-xs font-bold text-stone-600">Página {safePageIndex + 1} de {pages.length}</span>
+                <button
+                  type="button"
+                  onClick={() => setPageIndex((current) => Math.min(pages.length - 1, current + 1))}
+                  disabled={safePageIndex === pages.length - 1}
+                  className="rounded-lg border p-1.5 disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ borderColor: THEME_COLORS.borderLight, color: THEME_COLORS.textDark }}
+                  aria-label="Próxima página"
+                >
+                  ›
+                </button>
+              </div>
+            )}
 
             {/* Prévia */}
             <div className="overflow-auto bg-stone-100 p-6 md:p-10 flex justify-center">
@@ -363,6 +338,7 @@ export const MaterialDetailPage: React.FC = () => {
                     html={material.htmlContent}
                     width={isLandscape ? 960 : 794}
                     height={isLandscape ? 540 : 1123}
+                    pageIndex={safePageIndex}
                   />
                 </div>
               ) : (
@@ -377,7 +353,7 @@ export const MaterialDetailPage: React.FC = () => {
                     <FileText className="w-10 h-10" />
                   </span>
                   <h4 className="text-base font-bold" style={{ color: THEME_COLORS.textDark }}>
-                    Arquivo PDF
+                    Arquivo {material.fileType.toUpperCase()}
                   </h4>
                   <p className="mt-1 text-xs font-semibold text-stone-500 max-w-sm">
                     A visualização do PDF estará disponível quando o arquivo estiver
@@ -400,15 +376,6 @@ export const MaterialDetailPage: React.FC = () => {
         />
       )}
 
-      {isEditOpen && (
-        <EditarMaterialModal
-          material={material}
-          onClose={() => setIsEditOpen(false)}
-          onUpdated={(updated) => {
-            void updateMaterial(updated).catch((error) => console.error(error));
-          }}
-        />
-      )}
 
       {isDeleteOpen && (
         <ConfirmDeleteModal

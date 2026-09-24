@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { File } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
+import { buildPageDocument } from '../../utils/htmlLayers';
 
 interface HtmlPreviewProps {
   html: string;
@@ -10,16 +11,21 @@ interface HtmlPreviewProps {
   refHeight?: number;
   width?: number;
   height?: number;
+  pageIndex?: number;
 }
 
-const extractBody = (html: string): string => {
-  const match = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-  return match?.[1] ?? html;
+const extractDocumentPart = (html: string, tag: 'head' | 'body'): string => {
+  const match = html.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*)</${tag}>`, 'i'));
+  return match?.[1] ?? '';
 };
 
 const wrapContent = (html: string, scrollable: boolean): string => {
-  const body = extractBody(html);
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>*{box-sizing:border-box}body{margin:0;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;line-height:1.5;overflow:${scrollable ? 'hidden' : 'auto'}}</style></head><body>${body}</body></html>`;
+  const hasDocument = /<html\b/i.test(html);
+  const head = hasDocument
+    ? extractDocumentPart(html, 'head').replace(/<script\b[\s\S]*?<\/script>/gi, '')
+    : '';
+  const body = hasDocument ? extractDocumentPart(html, 'body') : html;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">${head}<style>*{box-sizing:border-box}body{margin:0;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;line-height:1.5;overflow:${scrollable ? 'hidden' : 'auto'}}</style></head><body>${body}</body></html>`;
 };
 
 export const HtmlPreview: React.FC<HtmlPreviewProps> = ({
@@ -30,6 +36,7 @@ export const HtmlPreview: React.FC<HtmlPreviewProps> = ({
   refHeight = 1273,
   width,
   height,
+  pageIndex,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [, setScale] = useState<number | null>(fit ? 1 : null);
@@ -53,7 +60,10 @@ export const HtmlPreview: React.FC<HtmlPreviewProps> = ({
   }, [fit, refWidth, refHeight]);
 
   const content = html?.trim();
-  if (!content) {
+  const pageContent = content && pageIndex !== undefined
+    ? buildPageDocument(content, pageIndex)
+    : content;
+  if (!pageContent) {
     return (
       <span
         className={`flex items-center justify-center ${className ?? ''}`}
@@ -68,7 +78,7 @@ export const HtmlPreview: React.FC<HtmlPreviewProps> = ({
     return (
       <iframe
         title="Prévia do HTML"
-        srcDoc={wrapContent(content, false)}
+        srcDoc={wrapContent(pageContent, false)}
         className={className}
         sandbox=""
         style={{
@@ -95,7 +105,7 @@ export const HtmlPreview: React.FC<HtmlPreviewProps> = ({
       >
         <iframe
           title="Prévia do HTML"
-          srcDoc={wrapContent(content, true)}
+          srcDoc={wrapContent(pageContent, true)}
           sandbox=""
           style={{
             border: 'none',

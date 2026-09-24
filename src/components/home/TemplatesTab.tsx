@@ -740,9 +740,7 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = () => {
         <CriarTemplateModal
           turmas={turmas}
           onClose={() => setIsCreateOpen(false)}
-          onCreated={(template) => {
-            void createTemplate(template).catch((error) => console.error(error));
-          }}
+          onCreated={(template) => createTemplate(template)}
         />
       )}
 

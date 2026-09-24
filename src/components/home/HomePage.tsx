@@ -2,15 +2,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { 
-<<<<<<< HEAD
   MessageSquareQuote, LayoutTemplate, BookOpen,
   FileText, Clock, BookMarked,
-  FolderOpen, Presentation, Zap
-=======
-  MessageSquareQuote, LayoutTemplate, BookOpen, 
-  FileText, Clock,
   FolderOpen, Presentation, Zap, MoreVertical, Pencil, Trash2, X
->>>>>>> 35e464a (add: adicionando suporte aos arquivos de pdf e html em materiais)
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import { HtmlPreview } from '../general/HtmlPreview';
@@ -39,6 +33,9 @@ export const HomePage: React.FC<HomePageProps> = () => {
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [deletedSessionIds, setDeletedSessionIds] = useState<Set<string>>(() => new Set());
   const [editingTitle, setEditingTitle] = useState('');
+  const [workflowDeleteTarget, setWorkflowDeleteTarget] = useState<api.WorkflowSessionSummary | null>(null);
+  const [isDeletingWorkflow, setIsDeletingWorkflow] = useState(false);
+  const [workflowDeleteError, setWorkflowDeleteError] = useState<string | null>(null);
 
   const [renameTarget, setRenameTarget] =
     useState<Material | null>(null);
@@ -165,8 +162,8 @@ export const HomePage: React.FC<HomePageProps> = () => {
 
   const visibleWorkflowSessions = workflowSessions.filter((session) => (
     !deletedSessionIds.has(session.id) &&
-    filterCategory === 'all'
-      || workflowCategories[session.selected_agent ?? 'brainstorm'] === filterCategory
+    (filterCategory === 'all'
+      || workflowCategories[session.selected_agent ?? 'brainstorm'] === filterCategory)
   ));
   const continuationCount = workflowSessions.length + materiais.length;
   const categoryCount = (category: string) => (
@@ -209,15 +206,24 @@ export const HomePage: React.FC<HomePageProps> = () => {
     }
   };
 
-  const deleteWorkflow = async (session: api.WorkflowSessionSummary) => {
-    if (!window.confirm('Excluir este plano e todo o seu progresso?')) return;
-    setDeletedSessionIds((current) => new Set(current).add(session.id));
-    setWorkflowSessions((current) => current.filter((item) => item.id !== session.id));
+  const deleteWorkflow = (session: api.WorkflowSessionSummary) => {
+    setWorkflowDeleteError(null);
+    setWorkflowDeleteTarget(session);
     setOptionsSessionId(null);
     setEditingSessionId(null);
+  };
+
+  const confirmDeleteWorkflow = async () => {
+    if (!workflowDeleteTarget || isDeletingWorkflow) return;
+    const session = workflowDeleteTarget;
+    setIsDeletingWorkflow(true);
+    setWorkflowDeleteError(null);
+    setDeletedSessionIds((current) => new Set(current).add(session.id));
+    setWorkflowSessions((current) => current.filter((item) => item.id !== session.id));
     try {
       await api.deleteWorkflowSession(session.id);
-    } catch {
+      setWorkflowDeleteTarget(null);
+    } catch (error) {
       // Se a exclusão falhar, repõe o card para não esconder uma sessão válida.
       setDeletedSessionIds((current) => {
         const next = new Set(current);
@@ -225,6 +231,9 @@ export const HomePage: React.FC<HomePageProps> = () => {
         return next;
       });
       setWorkflowSessions((current) => [session, ...current]);
+      setWorkflowDeleteError(error instanceof Error ? error.message : 'Não foi possível excluir o plano.');
+    } finally {
+      setIsDeletingWorkflow(false);
     }
   };
 
@@ -485,13 +494,8 @@ export const HomePage: React.FC<HomePageProps> = () => {
                 <div
                   key={`session-${session.id}`}
                   onClick={() => void openWorkflowSession(session)}
-<<<<<<< HEAD
-                  className={`template-card-in rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all hover:shadow-md hover:-translate-y-1 cursor-pointer group ${openingSessionId === session.id ? 'opacity-60' : ''}`}
+                  className={`template-card-in relative rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all hover:shadow-md hover:-translate-y-1 cursor-pointer group ${openingSessionId === session.id ? 'opacity-60' : ''}`}
                   style={{ backgroundColor: '#ffffff40', borderColor: THEME_COLORS.borderLight, animationDelay: `${350 + idx * 90}ms` }}
-=======
-                  className={`relative rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all hover:shadow-md hover:-translate-y-1 cursor-pointer group ${openingSessionId === session.id ? 'opacity-60' : ''}`}
-                  style={{ backgroundColor: '#ffffff40', borderColor: THEME_COLORS.borderLight }}
->>>>>>> 35e464a (add: adicionando suporte aos arquivos de pdf e html em materiais)
                 >
                   <button
                     type="button"
@@ -585,7 +589,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
                 key={material.id}
                 onClick={() =>
                   navigate(
-                    `/home/editor/material?title=${encodeURIComponent(material.title)}`
+                    `/home/editor/material?materialId=${encodeURIComponent(material.id)}&title=${encodeURIComponent(material.title)}`
                   )
                 }
                 className={`
@@ -656,6 +660,19 @@ export const HomePage: React.FC<HomePageProps> = () => {
         )}
 
       </section>
+
+      {workflowDeleteTarget && (
+        <ConfirmDeleteModal
+          title="Excluir plano?"
+          message={`Tem certeza que deseja excluir "${titleOverrides[workflowDeleteTarget.id] ?? agentLabels[workflowDeleteTarget.selected_agent ?? 'brainstorm'] ?? 'este plano'}" e todo o seu progresso? Esta ação não pode ser desfeita.`}
+          onCancel={() => {
+            if (!isDeletingWorkflow) setWorkflowDeleteTarget(null);
+          }}
+          loading={isDeletingWorkflow}
+          error={workflowDeleteError}
+          onConfirm={() => { void confirmDeleteWorkflow(); }}
+        />
+      )}
 
       {renameTarget && (
         <RenomearModal

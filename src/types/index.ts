@@ -16,7 +16,7 @@ export interface Material {
   orientation: 'V' | 'H';
   type: MaterialType;
   category: MaterialCategory;
-  fileType: 'pdf' | 'html';
+  fileType: 'pdf' | 'html' | 'docx';
   qtd: number;
   htmlContent: string;
   fileName?: string;
@@ -43,7 +43,6 @@ export interface Template {
   id: string;
   title: string;
   qtd: number;
-  description?: string;
   htmlContent: string;
   fileName?: string;
   fileContent?: string;

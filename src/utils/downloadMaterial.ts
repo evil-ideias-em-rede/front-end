@@ -23,3 +23,5 @@ export const downloadMaterialHtml = (material: Material) => {
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   triggerDownload(blob, `${sanitizeFilename(material.title)}.html`);
 };
+
+

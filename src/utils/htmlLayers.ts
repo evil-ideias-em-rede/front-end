@@ -26,6 +26,12 @@ export interface HtmlPage {
 
 const EDITABLE_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'li', 'td', 'th', 'span', 'a', 'blockquote']);
 
+const findPageMarkers = (doc: Document): Element[] => {
+  const editorPages = Array.from(doc.body.querySelectorAll(':scope > [data-ied-page]'));
+  if (editorPages.length > 0) return editorPages;
+  return Array.from(doc.body.querySelectorAll(':scope > .documento > .folha, :scope > .folha'));
+};
+
 const LABEL_BY_TAG: Record<string, (el: Element, idx: number) => string> = {
   h1: () => 'Título',
   h2: () => 'Subtítulo',
@@ -132,10 +138,7 @@ export function parseHtmlLayers(html: string): {
 
   // Atribuir pageIndex via ancestral [data-ied-page] mais próximo.
   // Ordem das páginas = ordem dos filhos diretos do body com o atributo.
-  const pageOrder: Element[] = [];
-  body.querySelectorAll(':scope > [data-ied-page]').forEach((el) => {
-    pageOrder.push(el);
-  });
+  const pageOrder = findPageMarkers(doc);
   if (pageOrder.length > 0) {
     layers.forEach((layer) => {
       const idx = Number(layer.selector.match(/\d+/)?.[0] ?? -1);
@@ -145,8 +148,9 @@ export function parseHtmlLayers(html: string): {
     });
   }
 
-  const styleTag = doc.querySelector('style');
-  const existingStyles = styleTag ? styleTag.outerHTML : '';
+  const existingStyles = Array.from(doc.head.querySelectorAll('style'))
+    .map((style) => style.outerHTML)
+    .join('');
 
   const markedHtml = existingStyles + body.innerHTML;
 
@@ -169,10 +173,7 @@ export function parseHtmlLayers(html: string): {
  */
 export function parseHtmlPages(html: string): HtmlPage[] {
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  const markers: Element[] = [];
-  doc.body.querySelectorAll(':scope > [data-ied-page]').forEach((el) => {
-    markers.push(el);
-  });
+  const markers = findPageMarkers(doc);
   if (markers.length === 0) {
     return [{ id: 'ied-page-0', index: 0, label: 'Página 1', selector: 'body' }];
   }
@@ -190,13 +191,11 @@ export function parseHtmlPages(html: string): HtmlPage[] {
  */
 export function buildPageDocument(html: string, pageIndex: number): string {
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  const styleTag = doc.querySelector('style:not([id="ied-editor-style"])');
-  const existingStyles = styleTag ? styleTag.outerHTML : '';
+  const existingStyles = Array.from(doc.head.querySelectorAll('style:not([id="ied-editor-style"])'))
+    .map((style) => style.outerHTML)
+    .join('');
 
-  const markers: Element[] = [];
-  doc.body.querySelectorAll(':scope > [data-ied-page]').forEach((el) => {
-    markers.push(el);
-  });
+  const markers = findPageMarkers(doc);
 
   const bodyContent =
     markers.length === 0
@@ -224,10 +223,7 @@ export function mergePageIntoDocument(
   pageDoc: Document
 ): string {
   const doc = new DOMParser().parseFromString(fullHtml, 'text/html');
-  const markers: Element[] = [];
-  doc.body.querySelectorAll(':scope > [data-ied-page]').forEach((el) => {
-    markers.push(el);
-  });
+  const markers = findPageMarkers(doc);
 
   if (markers.length === 0) {
     doc.body.innerHTML = pageDoc.body.innerHTML;

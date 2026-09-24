@@ -37,7 +37,7 @@ export const CriarMaterialModal: React.FC<CriarMaterialModalProps> = ({
   const [name, setName] = useState('');
   const [type, setType] = useState<MaterialType>('source');
   const [category, setCategory] = useState<MaterialCategory>('material');
-  const [fileType, setFileType] = useState<'pdf' | 'html'>('html');
+  const [fileType, setFileType] = useState<'pdf' | 'html' | 'docx'>('html');
   const [isAutoral, setIsAutoral] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
@@ -63,6 +63,7 @@ export const CriarMaterialModal: React.FC<CriarMaterialModalProps> = ({
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     setFileName(file?.name ?? '');
+    setFileType(file?.name?.toLowerCase().endsWith('.pdf') ? 'pdf' : file?.name?.toLowerCase().endsWith('.docx') ? 'docx' : 'html');
     setFileContent('');
     if (file) {
       const reader = new FileReader();
@@ -89,10 +90,7 @@ export const CriarMaterialModal: React.FC<CriarMaterialModalProps> = ({
         fileName: fileName || undefined,
         fileContent: fileContent || undefined,
         qtd: selectedKeys.length,
-        htmlContent:
-          fileType === 'html'
-            ? materialHtml(name.trim())
-            : materialHtml(name.trim()),
+        htmlContent: fileType === 'html' ? materialHtml(name.trim()) : '',
         turmaIds: turmas
           .filter((t) =>
             selectedKeys.includes(turmaKey(t))
@@ -274,7 +272,7 @@ export const CriarMaterialModal: React.FC<CriarMaterialModalProps> = ({
               <FileText className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
               <select
                 value={fileType}
-                onChange={(e) => setFileType(e.target.value as 'pdf' | 'html')}
+                onChange={(e) => setFileType(e.target.value as 'pdf' | 'html' | 'docx')}
                 className={`${inputClassName} appearance-none pr-9 cursor-pointer`}
                 style={{
                   backgroundColor: THEME_COLORS.bgLight,
@@ -284,6 +282,7 @@ export const CriarMaterialModal: React.FC<CriarMaterialModalProps> = ({
               >
                 <option value="html">HTML</option>
                 <option value="pdf">PDF</option>
+                <option value="docx">DOCX</option>
               </select>
               <svg
                 className="w-4 h-4 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -386,10 +385,10 @@ export const CriarMaterialModal: React.FC<CriarMaterialModalProps> = ({
                   {fileName || 'Carregar arquivo'}
                 </span>
                 <span className="block text-[10px] font-medium opacity-70">
-                  PDF, DOCX ou imagem
+                  PDF, HTML ou DOCX
                 </span>
               </span>
-              <input type="file" className="hidden" onChange={handleFile} />
+              <input type="file" accept=".pdf,.html,.htm,.docx" className="hidden" onChange={handleFile} />
             </label>
           </div>
 

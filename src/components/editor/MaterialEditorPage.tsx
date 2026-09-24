@@ -27,6 +27,7 @@ export const MaterialEditorPage: React.FC = () => {
 
   const hasTitle = searchParams.has('title') && searchParams.get('title')?.trim() !== '';
   const initialTitle = searchParams.get('title') ?? 'Novo material';
+  const materialId = searchParams.get('materialId') ?? undefined;
   const materialType = searchParams.get('type') ?? undefined;
   const serie = searchParams.get('serie') ?? undefined;
   const audienciaId = searchParams.get('audienciaId') ?? undefined;
@@ -40,8 +41,10 @@ export const MaterialEditorPage: React.FC = () => {
 
   // Material salvo correspondente ao título de abertura, se existir.
   const savedMaterial = useMemo(
-    () => materiais.find((material) => material.title === initialTitle),
-    [materiais, initialTitle]
+    () => materialId
+      ? materiais.find((material) => material.id === materialId)
+      : materiais.find((material) => material.title === initialTitle),
+    [materiais, materialId, initialTitle]
   );
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -51,7 +54,12 @@ export const MaterialEditorPage: React.FC = () => {
   // Slides editam em folha horizontal (paisagem); demais formatos em retrato.
   const orientation: 'V' | 'H' = materialType === 'slides' ? 'H' : 'V';
 
-  const [html, setHtml] = useState<string>(() => sessionId ? '' : parseHtmlLayers(EDITOR_MOCK_HTML).markedHtml);
+  const [html, setHtml] = useState<string>(() => (
+    sessionId
+      ? ''
+      : parseHtmlLayers(savedMaterial?.htmlContent || EDITOR_MOCK_HTML).markedHtml
+  ));
+  const loadedMaterialIdRef = useRef<string | null>(null);
   const [backendError, setBackendError] = useState<string | null>(null);
   const [llmBusy, setLlmBusy] = useState(Boolean(sessionId));
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -67,6 +75,12 @@ export const MaterialEditorPage: React.FC = () => {
       text: `Material gerado a partir da audiência "${documentTitle}"${serie ? ` para ${serie}` : ''}${audienciaId ? ` (fonte ${audienciaId})` : ''}. Selecione uma camada para editar ou peça mudanças aqui.`,
     },
   ]);
+
+  useEffect(() => {
+    if (sessionId || !savedMaterial?.htmlContent || loadedMaterialIdRef.current === savedMaterial.id) return;
+    setHtml(parseHtmlLayers(savedMaterial.htmlContent).markedHtml);
+    loadedMaterialIdRef.current = savedMaterial.id;
+  }, [sessionId, savedMaterial]);
 
   useEffect(() => {
     if (sessionId) {
@@ -290,14 +304,8 @@ export const MaterialEditorPage: React.FC = () => {
     if (serie) params.set('serie', serie);
     if (audienciaId) params.set('audienciaId', audienciaId);
     if (sessionId) params.set('sessionId', sessionId);
+    if (materialId) params.set('materialId', materialId);
     navigate(`/home/editor?${params.toString()}`);
-  };
-
-  const handleDelete = async () => {
-    if (!sessionId || llmBusy) return;
-    if (!window.confirm('Excluir este plano de aula e todo o seu progresso?')) return;
-    await api.deleteWorkflowSession(sessionId);
-    navigate('/home');
   };
 
   if (!hasTitle) {
@@ -355,7 +363,6 @@ export const MaterialEditorPage: React.FC = () => {
           orientation={orientation}
           isSlides={materialType === 'slides'}
           onExportPdf={() => void handleExportPdf()}
-          onDelete={() => void handleDelete()}
           exportingPdf={exportingPdf}
           serverRevision={serverRevision}
           onDelete={

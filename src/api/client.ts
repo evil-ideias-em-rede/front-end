@@ -94,7 +94,17 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   if (!response) throw networkError instanceof Error ? networkError : new Error('Não foi possível conectar ao servidor.');
   const contentType = response.headers.get('content-type') ?? '';
-  const body = contentType.includes('application/json') ? await response.json() : await response.text();
+  // DELETE endpoints respondem 204 sem corpo. Nunca tente fazer JSON.parse
+  // nesse caso, pois a exclusão já foi concluída no backend.
+  const rawBody = response.status === 204 ? '' : await response.text();
+  let body: unknown = rawBody;
+  if (rawBody && contentType.includes('application/json')) {
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      body = rawBody;
+    }
+  }
   if (!response.ok) {
     const rawDetail = typeof body === 'object' && body && 'detail' in body
       ? (body as { detail?: unknown }).detail
@@ -184,6 +194,37 @@ export async function deleteTemplate(id: string): Promise<void> {
 
 export async function listMateriais(): Promise<Material[]> {
   return request<Material[]>('/api/materiais');
+}
+
+export type MaterialDownloadFormat = 'html' | 'pdf' | 'docx';
+
+export async function downloadMaterialFile(id: string, format: MaterialDownloadFormat): Promise<void> {
+  const token = getAccessToken();
+  const headers = new Headers();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  const response = await fetch(`${API_BASE}/api/materiais/${encodeURIComponent(id)}/download?format=${format}`, { headers });
+  if (!response.ok) {
+    const body = await response.text();
+    let detail = body || response.statusText;
+    try {
+      const parsed = JSON.parse(body) as { detail?: string };
+      detail = parsed.detail || detail;
+    } catch {
+      // Mantém a mensagem textual retornada pelo servidor.
+    }
+    throw new Error(detail || `Erro ${response.status}`);
+  }
+  const blob = await response.blob();
+  const disposition = response.headers.get('content-disposition') || '';
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `material.${format}`;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 export async function createMaterial(material: Material): Promise<Material> {

@@ -41,9 +41,10 @@ export const TurmaDetailPage: React.FC = () => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const { turmas: turmasList, materiais: allMateriais, createTurma, updateTurma, deleteTurma } = useBackendData();
+  const { turmas: turmasList, templates: allTemplates, materiais: allMateriais, createTurma, updateTurma, deleteTurma } = useBackendData();
 
   const turma = useMemo(() => (id ? turmasList.find((item) => item.id === id) : undefined), [id, turmasList]);
+  const templates = useMemo(() => (id ? allTemplates.filter((item) => item.turmaIds?.includes(id)) : []), [id, allTemplates]);
   const materiais = useMemo(() => (id ? allMateriais.filter((item) => item.turmaIds?.includes(id)) : []), [id, allMateriais]);
 
   const allContent = useMemo(() => {
@@ -54,7 +55,20 @@ export const TurmaDetailPage: React.FC = () => {
       subtitle: string;
       htmlContent: string;
       orientation: 'V' | 'H';
+      kind: 'template' | 'material';
     }> = [];
+
+    templates.forEach((template) =>
+      items.push({
+        key: template.id,
+        title: template.title,
+        type: 'plano',
+        subtitle: CONTENT_TYPE_LABEL.plano,
+        htmlContent: template.htmlContent,
+        orientation: 'V',
+        kind: 'template',
+      })
+    );
 
     materiais.forEach((m) =>
       items.push({
@@ -64,11 +78,12 @@ export const TurmaDetailPage: React.FC = () => {
         subtitle: CONTENT_TYPE_LABEL[m.category],
         htmlContent: m.htmlContent,
         orientation: m.orientation,
+        kind: 'material',
       })
     );
 
     return items;
-  }, [materiais]);
+  }, [templates, materiais]);
 
   const filteredContent = useMemo(() => {
     const normalizedSearch = search.toLowerCase().trim();
@@ -328,7 +343,9 @@ export const TurmaDetailPage: React.FC = () => {
               {filteredContent.map((item, idx) => (
                 <div
                   key={item.key}
-                  onClick={() => navigate(`/home/materiais/${item.key}`)}
+                  onClick={() => navigate(item.kind === 'template'
+                    ? `/home/templates/${item.key}`
+                    : `/home/materiais/${item.key}`)}
                   className={`template-card-in cursor-pointer transition-all hover:scale-105 rounded-2xl border shadow-sm flex flex-col overflow-hidden ${
                     item.orientation === 'H' ? 'col-span-2' : 'col-span-1'
                   }`}

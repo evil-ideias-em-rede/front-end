@@ -1,36 +1,30 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   CheckCircle2,
-  LayoutTemplate,
   Upload,
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import type { Turma, Template } from '../../types';
-import { buildTemplateHtml } from '../../data/mockData';
 import { BaseModal } from './BaseModal';
 
 interface CriarTemplateModalProps {
   turmas: Turma[];
   onClose: () => void;
-  onCreated: (template: Template) => void;
+  onCreated: (template: Template) => Promise<unknown> | unknown;
 }
-
-const inputClassName =
-  'w-full pl-10 pr-4 py-2.5 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/10';
-const textareaClassName =
-  'w-full px-4 py-2.5 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/10 resize-none';
 
 export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
   turmas,
   onClose,
   onCreated,
 }) => {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [name, setName] = useState('');
   const [fileName, setFileName] = useState('');
   const [fileContent, setFileContent] = useState('');
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -52,9 +46,9 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
     const file = e.target.files?.[0];
     const f = file?.name ?? '';
     setFileName(f);
+    setName(f);
     setFileContent('');
     if (file) {
-      setDescription('');
       const selectedFile = file;
       const reader = new FileReader();
       reader.onload = () => setFileContent(String(reader.result || ''));
@@ -62,25 +56,29 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !fileName || !fileContent || saving) return;
 
-    setSaved(true);
-
-    timerRef.current = setTimeout(() => {
-      onCreated({
+    setSaving(true);
+    setError('');
+    try {
+      await onCreated({
         id: crypto.randomUUID(),
-        title: fileName || name.trim(),
-        description: description.trim() || undefined,
+        title: name.trim(),
         qtd: selectedIds.length,
-        htmlContent: buildTemplateHtml(name.trim()),
+        htmlContent: '',
         fileName: fileName || undefined,
         fileContent: fileContent || undefined,
         turmaIds: selectedIds,
       });
-      onClose();
-    }, 850);
+      setSaved(true);
+      timerRef.current = setTimeout(onClose, 850);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível criar o template.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const groupedBySchool = React.useMemo(() => {
@@ -107,7 +105,7 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
           </h3>
 
           <p className="text-xs font-semibold text-stone-500">
-            {name}
+            {fileName}
             {selectedIds.length > 0
               ? ` • ${selectedIds.length} ${
                   selectedIds.length === 1
@@ -136,108 +134,56 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: THEME_COLORS.textDark }}>
-              Nome do Template
+              Arquivo do template
             </label>
-            <div className="relative">
-              <LayoutTemplate className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
+            <label
+              className="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.01]"
+              style={{
+                backgroundColor: THEME_COLORS.lightPrimary,
+                borderColor: THEME_COLORS.lightPrimary,
+                color: THEME_COLORS.primary,
+              }}
+            >
+              <span className="w-10 h-10 rounded-lg flex items-center justify-center bg-white/60">
+                <Upload className="w-5 h-5" />
+              </span>
+              <span className="text-left min-w-0">
+                <span className="block text-sm font-bold truncate">
+                  {fileName || 'Carregar arquivo'}
+                </span>
+                <span className="block text-[10px] font-medium opacity-70">
+                  HTML ou PDF
+                </span>
+              </span>
+              <input type="file" accept=".html,.htm,.pdf" className="hidden" onChange={handleFile} />
+            </label>
+            <div className="mt-3">
+              <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: THEME_COLORS.textDark }}>
+                Nome do template (nome do arquivo)
+              </label>
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Plano de Aula Padrão - Escola XYZ"
-                className={inputClassName}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="O nome aparecerá após selecionar o arquivo"
+                className="w-full px-4 py-2.5 rounded-xl text-sm border bg-white/50 focus:outline-none"
                 style={{
-                  backgroundColor: THEME_COLORS.bgLight,
                   borderColor: THEME_COLORS.borderLight,
                   color: THEME_COLORS.textDark,
                 }}
               />
             </div>
-          </div>
-
-          {/* Geração do template: descrição OU arquivo */}
-          <div className="rounded-2xl space-y-4" style={{ borderColor: THEME_COLORS.borderLight }}>
-            <div>
-              <h3 className="text-sm font-black tracking-tight" style={{ color: THEME_COLORS.textDark }}>
-                Como você quer gerar o template?
-              </h3>
-              <p className="mt-1 text-[11px] font-semibold text-stone-500">
-                Escolha uma das duas opções: descreva o template abaixo{' '}
-                <span className="font-black">ou</span> anexe um arquivo.
+            {error && (
+              <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
+                {error}
               </p>
-            </div>
-
-            <div className=" grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Opção 1: descrição */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: THEME_COLORS.textDark }}>
-                  Descrição do template
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => {
-                    setDescription(e.target.value);
-                    if (e.target.value.trim()) setFileName('');
-                  }}
-                  rows={5}
-                  disabled={!!fileName}
-                  placeholder="Descreva como você imagina o layout do seu template, que seções são necessárias..."
-                  className={`${textareaClassName} disabled:opacity-50 ${fileName ? 'cursor-not-allowed' : ''}`}
-                  style={{
-                    backgroundColor: THEME_COLORS.bgLight,
-                    borderColor: THEME_COLORS.borderLight,
-                    color: THEME_COLORS.textDark,
-                  }}
-                />
-              </div>
-
-              {/* Opção 2: arquivo */}
-              <div className="flex flex-col h-full">
-                <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: THEME_COLORS.textDark }}>
-                  Arquivo da estrutura
-                </label>
-                <div className="flex-1 flex flex-col">
-                  <label
-                    className={`flex-1 flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] ${
-                      description.trim() ? 'opacity-50 pointer-events-none' : ''
-                    }`}
-                    style={{
-                      backgroundColor: THEME_COLORS.lightPrimary,
-                      borderColor: THEME_COLORS.lightPrimary,
-                      color: THEME_COLORS.primary,
-                    }}
-                  >
-                    <span className="w-10 h-10 rounded-lg flex items-center justify-center bg-white/60">
-                      <Upload className="w-5 h-5" />
-                    </span>
-                    <span className="text-left min-w-0">
-                      <span className="block text-sm font-bold truncate">
-                        {fileName || 'Carregar arquivo'}
-                      </span>
-                      <span className="block text-[10px] font-medium opacity-70">
-                        DOCX, PDF ou texto
-                      </span>
-                    </span>
-                    <input type="file" className="hidden" onChange={handleFile} />
-                  </label>
-                  {fileName && (
-                    <button
-                      type="button"
-                      onClick={() => { setFileName(''); setFileContent(''); }}
-                      className="mt-1 text-[10px] font-bold text-stone-500 hover:text-red-600 text-left cursor-pointer"
-                    >
-                      Remover arquivo
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Turmas associadas */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: THEME_COLORS.textDark }}>
-              Turmas associadas
+              Turmas associadas ao template
             </label>
 
             <div
@@ -318,8 +264,9 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
               type="submit"
               className="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white shadow-sm transition-all hover:scale-105 cursor-pointer"
               style={{ backgroundColor: THEME_COLORS.primary }}
+              disabled={!name.trim() || !fileName || !fileContent || saving}
             >
-              Criar Template
+              {saving ? 'Salvando...' : 'Criar Template'}
             </button>
           </div>
         </form>
