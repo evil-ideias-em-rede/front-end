@@ -1,7 +1,7 @@
 ﻿import React, { useState } from 'react';
 import { 
-  MessageSquare, Lightbulb, FileText, CheckCircle2, 
-  ArrowRight, ShieldAlert, Sparkles, Layers
+  Search, Bot, PenLine, Download, CheckCircle2, 
+  ArrowRight, RotateCcw, Sparkles, Layers
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 
@@ -11,59 +11,59 @@ export const TeachingGuide: React.FC = () => {
   const guides = [
     {
       id: 0,
-      title: 'Debates Estruturados & Simulações Parlamentares',
-      subtitle: 'Como evitar o caos e promover a escuta recíproca',
-      icon: MessageSquare,
-      description: 'Estruturar o tempo de fala e definir critérios claros de pontuação e réplica transforma o debate de um conflito inflamado para um enriquecedor exercício de retórica e respeito.',
+      title: 'Escolha o debate',
+      subtitle: 'Encontre a audiência certa para o seu tema',
+      icon: Search,
+      description: 'Descreva o tema em linguagem natural e localize audiências públicas da Câmara dos Deputados por similaridade semântica. Cada resultado traz resumo, participantes e indicadores discursivos para você examinar antes de incorporar ao planejamento.',
       tips: [
-        'Adote o modelo de "Inversão de Papéis": peça para o aluno defender argumentos da corrente oposta à sua convicção pessoal.',
-        'Use uma Matriz de Argumentação: premissa maior, evidência concreta e conclusão.',
-        'Institua a regra do cartão de falácia: quando houver ataque pessoal (ad hominem), o tempo do orador é pausado para reflexão pedagógica.',
-        'Defina um cronômetro visível com tempo para exposição (3 min), réplica (2 min) e tréplica (1 min).',
+        'Busque pelo tema da aula e compare os resumos dos debates ranqueados.',
+        'Verifique participantes, posições distintas e categorias discursivas identificadas.',
+        'Abra os dados completos do debate e retorne à transcrição original quando precisar de contexto.',
+        'A escolha das fontes já é uma decisão pedagógica: prefira recortes plurais.',
       ],
-      suggestedActivity: 'Simulação de Audiência Pública na Câmara Municipal para debater transporte escolar gratuito ou uso de celulares na escola.',
+      suggestedActivity: '"Quero montar uma oficina de redação para o 6º ano sobre igualdade de gênero. Quais audiências da Câmara tratam desse tema?"',
     },
     {
       id: 1,
-      title: 'Filosofias & Teorias Políticas sem Abstração',
-      subtitle: 'Conectando os clássicos aos dilemas dos jovens contemporâneos',
-      icon: Lightbulb,
-      description: 'Apresente os contratualistas (Hobbes, Locke, Rousseau) e pensadores modernos (Arendt, Bobbio, Habermas) não como estátuas do passado, mas como chaves de leitura para o mundo digital.',
+      title: 'Planeje com os agentes',
+      subtitle: 'Do tema ao roteiro da aula',
+      icon: Bot,
+      description: 'Os agentes recuperam audiências relevantes para o tipo de material que você deseja criar e maturam as ideias com você, sempre esperando você aprovar cada decisão antes de avançar.',
       tips: [
-        'Relacione "O Contrato Social" às regras de convivência escolar e termos de uso das redes sociais.',
-        'Apresente o "Estado de Natureza" hobbesiano ao debater a necessidade de leis contra o cyberbullying.',
-        'Utilize o conceito de "Esfera Pública" de Habermas para analisar os comentários em vídeos e fóruns online.',
-        'Trabalhe a "Banalidade do Mal" de Hannah Arendt para conscientizar sobre conformismo social e pensamento crítico.',
+        'Descreva série, componente curricular e objetivos da aula no chat.',
+        'Revise o planejamento proposto antes de autorizar a geração.',
+        'Ajuste complexidade, extensão e vocabulário ao nível da sua turma.',
+        'Selecione as habilidades da BNCC adequadas à etapa de ensino.',
       ],
-      suggestedActivity: 'Painel "Filósofos em Rede": criação de posts fictícios de cada autor comentando uma notícia atual.',
+      suggestedActivity: '"A turma tem 30 alunos do 8º ano. Monte um plano de 2 aulas com leitura de trechos, discussão em grupos e uma atividade escrita alinhada à BNCC."',
     },
     {
       id: 2,
-      title: 'Letramento Político & Detecção de Falácias',
-      subtitle: 'Imunizando a sala de aula contra fake news e desinformação',
-      icon: ShieldAlert,
-      description: 'Ensinar o estudante a verificar fontes primárias, checar dados oficiais em portais de transparência e identificar falácias lógicas recorrentes no discurso público.',
+      title: 'Gere e edite no canvas',
+      subtitle: 'Material estruturado e editável',
+      icon: PenLine,
+      description: 'Escolha entre plano de aula, atividade, debate e muito mais. O agente de implementação transforma suas ideias em material editável, deixando que você manualmente ajuste ou solicite ajustes o quanto precisar em um canvas editável ao lado do chat.',
       tips: [
-        'Oficina do "Espantalho e do Arenque Defumado": reconhecer quando um argumento distorce o tema original.',
-        'Busca reversa de imagens e checagem cruzada em agências de fact-checking reconhecidas.',
-        'Diferenciar claramente: Poder Executivo, Legislativo e Judiciário e as atribuições de cada esfera de poder.',
-        'Análise da linguagem apelativa, títulos sensacionalistas e viés de confirmação.',
+        'Edite títulos, enunciados e blocos diretamente no canvas, sem regenerar tudo.',
+        'Peça pelo chat mudanças amplas: reformular questões, adequar a linguagem, acrescentar um contraponto.',
+        'Confira cada afirmação no excerto original antes de aceitar.',
+        'Combine evidências dos debates com seus próprios livros e modelos de plano.',
       ],
-      suggestedActivity: 'Laboratório "Detetives da Informação": desconstrução em grupos de manchetes sensacionalistas virais com apresentação de contrapontos.',
+      suggestedActivity: '"Reformule a questão 3 com uma linguagem mais simples e acrescente um contraponto favorável ao tema."',
     },
     {
       id: 3,
-      title: 'Escrita Argumentativa & Proposta de Intervenção',
-      subtitle: 'Da oratória ao texto dissertativo com respeito aos Direitos Humanos',
-      icon: FileText,
-      description: 'Metodologia para consolidar a opinião crítica em textos estruturados (ensaios, cartas abertas, artigos de opinião e redação no padrão ENEM/Vestibulares).',
+      title: 'Revise e exporte',
+      subtitle: 'Aprovação docente e sala de aula',
+      icon: Download,
+      description: 'Conversas, fontes externas e decisões pedagógicas ficam registradas para rastreabilidade. Aprove o material final, salve na sua base e exporte no melhor formato para usar em sala de aula.',
       tips: [
-        'Ensine a fórmula da Proposta de Intervenção: Agente + Ação + Meio/Modo + Efeito + Detalhamento.',
-        'Treine o uso de repertório sociocultural legitimado: citações filosóficas, dados estatísticos e marcos legais como a Constituição de 1988.',
-        'Estimule a redação de Cartas Abertas endereçadas a autoridades locais (vereadores, secretários de educação).',
-        'Avaliação por pares: alunos revisam a coerência e coesão dos argumentos dos colegas.',
+        'Faça a revisão final: coerência entre objetivos, atividades e avaliação.',
+        'Aprove o material para armazená-lo na sua base de materiais.',
+        'Exporte em PDF preservando a estrutura definida no editor.',
+        'Reutilize e adapte o material para outras turmas quando precisar.',
       ],
-      suggestedActivity: 'Concurso de Redação Cidadã com publicação dos melhores artigos de opinião no mural da escola ou blog comunitário.',
+      suggestedActivity: '"Aprovado. Salve o material na minha base e gere o PDF em formato retrato."',
     },
   ];
 
@@ -85,12 +85,12 @@ export const TeachingGuide: React.FC = () => {
         {/* Header with Mixed Outline and Solid Typography */}
         <div className="max-w-3xl mx-auto text-center space-y-4">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight">
-            <span className="text-outline-dark">Como Aprimorar meu </span>
-            <span style={{ color: THEME_COLORS.textDark }}>Ensino de Política</span>
+            <span className="text-outline-dark">Como funciona o </span>
+            <span style={{ color: THEME_COLORS.textDark }}>Contraponto</span>
           </h2>
 
           <p className="text-base sm:text-lg font-medium" style={{ color: THEME_COLORS.gray }}>
-            Metodologias práticas e dinâmicas para tornar as aulas envolventes, respeitosas e fundamentadas.
+            Da escolha do debate ao plano de aula: um fluxo em 4 etapas com o professor no comando.
           </p>
         </div>
 
@@ -142,7 +142,7 @@ export const TeachingGuide: React.FC = () => {
                     </div>
                     <div>
                       <span className="text-xs font-black uppercase tracking-widest" style={{ color: THEME_COLORS.primary }}>
-                        Estratégia Pedagógica
+                        Etapa do fluxo
                       </span>
                       <h3 className="text-2xl sm:text-3xl font-black leading-snug" style={{ color: THEME_COLORS.textDark }}>
                         {current.title}
@@ -154,22 +154,55 @@ export const TeachingGuide: React.FC = () => {
                     {current.description}
                   </p>
 
-                  {/* Suggested Activity Highlight Box */}
-                  <div 
-                    className="p-6 rounded-2xl border-2 space-y-2"
-                    style={{ 
-                      backgroundColor: THEME_COLORS.bgLight, 
-                      borderColor: THEME_COLORS.borderLight 
-                    }}
-                  >
-                    <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wide" style={{ color: THEME_COLORS.primary }}>
-                      <Sparkles className="w-4 h-4" />
-                      <span>Sugestão de Atividade em Sala de Aula</span>
+                  {/* Exemplo de interação (etapas 1–3) ou formatos suportados (última etapa) */}
+                  {activeCategory < guides.length - 1 ? (
+                    <div 
+                      className="p-6 rounded-2xl border-2 space-y-2"
+                      style={{ 
+                        backgroundColor: THEME_COLORS.bgLight, 
+                        borderColor: THEME_COLORS.borderLight 
+                      }}
+                    >
+                      <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wide" style={{ color: THEME_COLORS.primary }}>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Exemplo de interação</span>
+                      </div>
+                      <p className="text-sm font-bold leading-relaxed" style={{ color: THEME_COLORS.textDark }}>
+                        {current.suggestedActivity}
+                      </p>
                     </div>
-                    <p className="text-sm font-bold leading-relaxed" style={{ color: THEME_COLORS.textDark }}>
-                      {current.suggestedActivity}
-                    </p>
-                  </div>
+                  ) : (
+                    <div 
+                      className="p-6 rounded-2xl border-2 space-y-4"
+                      style={{ 
+                        backgroundColor: THEME_COLORS.bgLight, 
+                        borderColor: THEME_COLORS.borderLight 
+                      }}
+                    >
+                      <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wide" style={{ color: THEME_COLORS.primary }}>
+                        <Download className="w-4 h-4" />
+                        <span>Formatos suportados</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {['HTML', 'DOCX', 'PDF', 'PPTX'].map((format) => (
+                          <span
+                            key={format}
+                            className="px-4 py-1.5 rounded-full text-xs font-black tracking-wider border"
+                            style={{
+                              backgroundColor: THEME_COLORS.lightPrimary,
+                              borderColor: THEME_COLORS.lightPrimary,
+                              color: THEME_COLORS.primary,
+                            }}
+                          >
+                            {format}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-[11px] font-medium" style={{ color: THEME_COLORS.gray }}>
+                        PPTX disponível para apresentações de slides.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Right Side Step Tips */}
@@ -182,7 +215,7 @@ export const TeachingGuide: React.FC = () => {
                 >
                   <h4 className="font-black text-base flex items-center gap-2.5" style={{ color: THEME_COLORS.textDark }}>
                     <Layers className="w-5 h-5" style={{ color: THEME_COLORS.secondary }} />
-                    <span>Passo a Passo de Aplicação:</span>
+                    <span>Passo a passo da etapa:</span>
                   </h4>
 
                   <ul className="space-y-4">
@@ -195,13 +228,30 @@ export const TeachingGuide: React.FC = () => {
                   </ul>
 
                   <div 
-                    className="pt-4 border-t flex items-center justify-between text-xs font-bold"
-                    style={{ borderColor: THEME_COLORS.borderLight, color: THEME_COLORS.gray }}
+                    className="pt-4 border-t flex items-center justify-end text-xs font-bold"
+                    style={{ borderColor: THEME_COLORS.borderLight }}
                   >
-                    <span>Disponível nos templates do professor</span>
-                    <span className="flex items-center gap-1 font-extrabold" style={{ color: THEME_COLORS.secondary }}>
-                      Contraponto <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
+                    {activeCategory < guides.length - 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => setActiveCategory(activeCategory + 1)}
+                        className="flex items-center gap-1.5 font-extrabold cursor-pointer transition-all hover:gap-2.5"
+                        style={{ color: THEME_COLORS.secondaryText }}
+                      >
+                        <span>Próxima etapa: {guides[activeCategory + 1].title}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setActiveCategory(0)}
+                        className="flex items-center gap-1.5 font-extrabold cursor-pointer transition-all hover:gap-2.5"
+                        style={{ color: THEME_COLORS.secondaryText }}
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Voltar ao início do fluxo</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 

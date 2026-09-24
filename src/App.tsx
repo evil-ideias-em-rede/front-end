@@ -48,7 +48,7 @@ export function App() {
         {/* Sobre a Iniciativa */}
         <AboutInitiative />
 
-        {/* Como Aprimorar meu Ensino de Política */}
+        {/* Como Funciona o Contraponto */}
         <TeachingGuide />
       </main>
 

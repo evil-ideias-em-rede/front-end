@@ -2,13 +2,17 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { 
-  MessageSquareQuote, LayoutTemplate, BookOpen, 
-  FileText, Clock,
+  MessageSquareQuote, LayoutTemplate, BookOpen,
+  FileText, Clock, BookMarked,
   FolderOpen, Presentation, Zap
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import { HtmlPreview } from '../general/HtmlPreview';
+import { RenomearModal } from '../criar/RenomearModal';
+import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
+import { CardMenu } from './CardMenu';
 import { useBackendData } from '../../context/BackendDataContext';
+import type { Material } from '../../types';
 import * as api from '../../api/client';
 
 interface HomePageProps {
@@ -17,11 +21,20 @@ interface HomePageProps {
 
 export const HomePage: React.FC<HomePageProps> = () => {
   const navigate = useNavigate();
-  const { materiais } = useBackendData();
+  const { materiais, updateMaterial, deleteMaterial } = useBackendData();
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [workflowSessions, setWorkflowSessions] = useState<api.WorkflowSessionSummary[]>([]);
   const [workflowLoading, setWorkflowLoading] = useState(true);
   const [openingSessionId, setOpeningSessionId] = useState<string | null>(null);
+
+  const [renameTarget, setRenameTarget] =
+    useState<Material | null>(null);
+
+  const [deleteTarget, setDeleteTarget] =
+    useState<Material | null>(null);
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -69,10 +82,17 @@ export const HomePage: React.FC<HomePageProps> = () => {
     slides: 'material',
   };
 
-  const formatSessionDate = (value: string) => new Date(value).toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: 'short',
-  });
+  const formatEditedDate = (value?: string | number) => {
+    if (value === undefined) return null;
+
+    const date = typeof value === 'number' ? new Date(value) : new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+
+    return `Editado em ${date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+    })}`;
+  };
 
   // Quick Inspiration Prompts
 
@@ -80,44 +100,44 @@ export const HomePage: React.FC<HomePageProps> = () => {
   const categoryShortcuts = [
     {
       id: 'brainstorm',
-      label: 'Brainstorm',
+      label: 'Brainstorm Livre',
       icon: Zap,
-      color: '#F43F5E',
+      color: '#823DF5',
       badge: 'Ideação Livre',
     },
     {
       id: 'debate',
       label: 'Roteiro de Debate',
       icon: MessageSquareQuote,
-      color: THEME_COLORS.primary,
+      color: '#2CB3ED',
       badge: 'Tempo & Réplicas',
     },
     {
       id: 'plano',
       label: 'Plano de Aula',
       icon: LayoutTemplate,
-      color: THEME_COLORS.secondary,
+      color: '#95C913',
       badge: 'Competências 7 e 10',
     },
     {
       id: 'redacao',
       label: 'Oficina de Redação',
       icon: FileText,
-      color: THEME_COLORS.sunshine,
+      color: '#EDB00C',
       badge: 'Intervenção Social',
     },
     {
       id: 'materiais',
       label: 'Letramento Midiático',
       icon: BookOpen,
-      color: '#3B82F6',
+      color: '#F64379',
       badge: 'Matrizes & Falácias',
     },
     {
       id: 'slides',
-      label: 'Slides',
+      label: 'Apresentação de Slides',
       icon: Presentation,
-      color: '#EC4899',
+      color: '#397BF9',
       badge: 'Materiais complementares',
     },
   ];
@@ -178,8 +198,8 @@ export const HomePage: React.FC<HomePageProps> = () => {
   return (
     <div 
 
-    className="relative flex-grow p-6 lg:px-20 lg:py-6 overflow-y-auto max-w-7xl mx-auto w-full">
-      <div className="relative z-10 space-y-4">
+    className="relative flex-grow p-6 lg:px-20 lg:py-6 overflow-y-auto max-w-7xl mx-auto w-full template-page-in">
+      <div className="relative z-10 pt-4 space-y-4">
       {/* ========================================================================= */}
       {/* 1. CANVA-INSPIRED HERO BANNER: "O que você quer criar hoje?"               */}
       {/* ========================================================================= */}
@@ -215,18 +235,18 @@ export const HomePage: React.FC<HomePageProps> = () => {
               fontSize="56"
               fontWeight="900"
               fill="transparent"
-              stroke="url(#purpleGradient1)"
+              stroke={THEME_COLORS.textDark}
               strokeWidth="2"
             >
-              O que você quer
+              O que você quer 
             </text>
 
             <text
-              x="475"
+              x="442"
               y="70"
               fontSize="56"
               fontWeight="900"
-              fill="url(#purpleGradient2)"
+              fill={THEME_COLORS.textDark}
             >
               criar hoje?
             </text>
@@ -308,7 +328,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
       </section>
 
 
-      <section className="space-y-6">
+      <section className="space-y-6 template-page-in" style={{ animationDelay: '150ms' }}>
         <div className="flex items-center justify-between">
           {/* 
           <h2 className="text-xl font-bold" style={{ color: THEME_COLORS.textDark }}>
@@ -319,7 +339,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
           </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-          {categoryShortcuts.map((cat) => {
+          {categoryShortcuts.map((cat, idx) => {
             const Icon = cat.icon;
             return (
               <button
@@ -330,27 +350,19 @@ export const HomePage: React.FC<HomePageProps> = () => {
                     `/home/editor?title=${encodeURIComponent(cat.label)}&type=${encodeURIComponent(cat.id)}`
                   )
                 }
-                className={`p-4 rounded-2xl border-r shadow-sm text-left transition-all hover:scale-[1.02] cursor-pointer flex flex-col justify-between min-h-[120px] shadow-sm
-                }`}
+                className="platform-shortcut-card template-card-in p-4 rounded-2xl border text-white transition-all hover:scale-[1.02] hover:-translate-y-0.5 cursor-pointer flex flex-col justify-between min-h-[112px] shadow-md"
                 style={{
-                  backgroundColor: '#ffffff40',
-                  borderColor: THEME_COLORS.borderLight,
+                  backgroundColor: cat.color,
+                  borderColor: 'rgba(255, 255, 255, 0.25)',
+                  animationDelay: `${200 + idx * 70}ms`,
                 }}
               >
-                <div 
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-xs"
-                  style={{ backgroundColor: cat.color }}
-                >
-                  <Icon className="w-5 h-5 stroke-[2.5]" />
-                </div>
+                <Icon className="w-10 h-10 p-0 m-0 shrink-0 self-start stroke-[2.25]" />
 
-                <div className="mt-3">
-                  <h3 className="text-xs font-black leading-tight" style={{ color: THEME_COLORS.textDark }}>
+                <div className="self-end p-0 m-0 text-right pb-1">
+                  <h3 className="text-base pl-10 font-black leading-tight text-white">
                     {cat.label}
                   </h3>
-                  <span className="text-[10px] font-bold mt-1 block" style={{ color: THEME_COLORS.gray }}>
-                    {cat.badge}
-                  </span>
                 </div>
               </button>
             );
@@ -361,7 +373,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
       {/* ========================================================================= */}
       {/* 3. "CONTINUE DE ONDE PAROU" (Unarchived Works & Preview Cards)             */}
       {/* ========================================================================= */}
-      <section className="space-y-6 pt-8">
+      <section className="space-y-6 pt-8 template-page-in" style={{ animationDelay: '250ms' }}>
         
         {/* Section Header with Category Filters */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 " style={{ borderColor: THEME_COLORS.borderLight }}>
@@ -424,15 +436,15 @@ export const HomePage: React.FC<HomePageProps> = () => {
         {/* Conversas do workflow salvas no backend */}
         {visibleWorkflowSessions.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 [grid-auto-flow:dense]">
-            {visibleWorkflowSessions.map((session) => {
+            {visibleWorkflowSessions.map((session, idx) => {
               const agent = session.selected_agent ?? 'brainstorm';
               const label = agentLabels[agent] ?? agent;
               return (
                 <div
                   key={`session-${session.id}`}
                   onClick={() => void openWorkflowSession(session)}
-                  className={`rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all hover:shadow-md hover:-translate-y-1 cursor-pointer group ${openingSessionId === session.id ? 'opacity-60' : ''}`}
-                  style={{ backgroundColor: '#ffffff40', borderColor: THEME_COLORS.borderLight }}
+                  className={`template-card-in rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all hover:shadow-md hover:-translate-y-1 cursor-pointer group ${openingSessionId === session.id ? 'opacity-60' : ''}`}
+                  style={{ backgroundColor: '#ffffff40', borderColor: THEME_COLORS.borderLight, animationDelay: `${350 + idx * 90}ms` }}
                 >
                   <div className="h-40 relative overflow-hidden shrink-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(226, 221, 240, 0.4)' }}>
                     <MessageSquareQuote className="w-14 h-14" style={{ color: THEME_COLORS.primary }} />
@@ -445,13 +457,10 @@ export const HomePage: React.FC<HomePageProps> = () => {
                       {session.last_message || 'Sessão iniciada; continue a conversa.'}
                     </p>
                   </div>
-                  <div className="p-4 px-6 border-t flex items-center justify-between text-xs" style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: 'rgba(0, 0, 0, 0.015)' }}>
+                  <div className="p-4 px-6 border-t flex items-center text-xs" style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: 'rgba(0, 0, 0, 0.015)' }}>
                     <span className="text-[11px] font-semibold text-stone-500 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {formatSessionDate(session.last_message_at ?? session.created_at)}
-                    </span>
-                    <span className="text-[11px] font-semibold text-stone-500">
-                      {session.message_count} mensagens
+                      {formatEditedDate(session.last_message_at ?? session.created_at)}
                     </span>
                   </div>
                 </div>
@@ -462,7 +471,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
 
         {/* Materiais gerados salvos no backend */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 [grid-auto-flow:dense]">
-          {filteredMateriais.map((material) => {
+          {filteredMateriais.map((material, idx) => {
             return (
               <div
                 key={material.id}
@@ -472,13 +481,15 @@ export const HomePage: React.FC<HomePageProps> = () => {
                   )
                 }
                 className={`
+                  template-card-in
                   rounded-3xl shadow-sm border overflow-hidden flex flex-col
                   transition-all hover:shadow-md hover:-translate-y-1 cursor-pointer group
                   ${material.orientation === 'H' ? 'col-span-2' : 'col-span-1'}
                 `}
                 style={{ 
                   backgroundColor: '#ffffff40', 
-                  borderColor: THEME_COLORS.borderLight 
+                  borderColor: THEME_COLORS.borderLight,
+                  animationDelay: `${350 + idx * 90}ms`,
                 }}
               >
                 {/* Thumbnail */}
@@ -492,6 +503,14 @@ export const HomePage: React.FC<HomePageProps> = () => {
                     refWidth={material.orientation === 'H' ? 1900 : 900}
                     refHeight={material.orientation === 'H' ? 900 : 1273}
                     className="w-full h-full"
+                  />
+
+                  <CardMenu
+                    onRename={() => setRenameTarget(material)}
+                    onDelete={() => {
+                      setDeleteError(null);
+                      setDeleteTarget(material);
+                    }}
                   />
                 </div>
 
@@ -508,10 +527,10 @@ export const HomePage: React.FC<HomePageProps> = () => {
                   style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: 'rgba(0, 0, 0, 0.015)' }}
                 >
                   <span className="text-[11px] font-semibold text-stone-500 flex items-center gap-1">
-                    {material.lastModified && (
+                    {material.lastModifiedAt !== undefined && (
                       <Clock className="w-3 h-3" />
                     )}
-                    {material.lastModified}
+                    {formatEditedDate(material.lastModifiedAt)}
                   </span>
                 </div>
 
@@ -521,7 +540,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
         </div>
 
         {!workflowLoading && visibleWorkflowSessions.length === 0 && filteredMateriais.length === 0 && (
-          <div className="p-12 mb-8 text-center rounded-3xl space-y-3">
+          <div className="template-card-in pt-12 mb-8 text-center rounded-3xl space-y-3">
             <FolderOpen className="w-10 h-10 mx-auto text-stone-400" />
             <h4 className="font-bold text-sm text-stone-700">Nenhum material encontrado nesta categoria</h4>
             <p className="text-xs text-stone-500">Utilize a barra de criação acima para iniciar um novo rascunho.</p>
@@ -529,6 +548,48 @@ export const HomePage: React.FC<HomePageProps> = () => {
         )}
 
       </section>
+
+      {renameTarget && (
+        <RenomearModal
+          title="Renomear Material"
+          label="Nome do material"
+          icon={<BookMarked className="w-4 h-4" />}
+          initialName={renameTarget.title}
+          placeholder="Ex: Livro de Português Ensino Médio Vol. 1"
+          confirmLabel="Renomear"
+          onClose={() => setRenameTarget(null)}
+          onSave={(name) => {
+            void updateMaterial({
+              ...renameTarget,
+              title: name,
+            }).catch((error) => console.error(error));
+          }}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          title="Excluir material?"
+          message={`Tem certeza que deseja excluir "${deleteTarget.title}"? Esta ação não pode ser desfeita.`}
+          onCancel={() => setDeleteTarget(null)}
+          loading={isDeleting}
+          error={deleteError}
+          onConfirm={() => {
+            if (isDeleting) return;
+            setIsDeleting(true);
+            setDeleteError(null);
+            void deleteMaterial(deleteTarget.id)
+              .then(() => {
+                setIsDeleting(false);
+                setDeleteTarget(null);
+              })
+              .catch((error) => {
+                setDeleteError(error instanceof Error ? error.message : 'Não foi possível excluir o material.');
+                setIsDeleting(false);
+              });
+          }}
+        />
+      )}
 
       </div>
       <div className='h-12'></div>

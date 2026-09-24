@@ -18,13 +18,9 @@ export interface LogoProps {
    */
   theme?: 'light' | 'dark';
   /**
-   * Exibir ou ocultar o subtítulo pedagógico
-   * @default false
-   */
-  showSubtitle?: boolean;
-  /**
    * Exibir ou ocultar a tag/badge "Educação Básica"
    * @default false
+   * @deprecated Mantido por compatibilidade, sem efeito visual.
    */
   showBadge?: boolean;
   /**
@@ -45,40 +41,43 @@ export const Logo: React.FC<LogoProps> = ({
   size = 'md',
   variant = 'full',
   theme = 'light',
-  showSubtitle = false,
   className = '',
   href,
   onClick,
 }) => {
   const sizeMap = {
     sm: {
-      icon: 'w-7 h-7',
+      icon: 'w-10 h-10',
       iconSvg: 'w-4 h-4',
-      text: 'text-lg',
+      dot: 'w-4 h-4',
+      text: 'text-3xl',
       badge: 'text-[9px] px-1.5 py-0.2',
       subtitle: 'text-[10px]',
       gap: 'gap-2',
     },
     md: {
-      icon: 'w-10 h-10',
+      icon: 'w-16 h-16',
       iconSvg: 'w-6 h-6',
-      text: 'text-2xl',
+      dot: 'w-6 h-6',
+      text: 'text-5xl',
       badge: 'text-[10px] px-2 py-0.5',
       subtitle: 'text-xs',
       gap: 'gap-3',
     },
     lg: {
-      icon: 'w-12 h-12',
+      icon: 'w-20 h-20',
       iconSvg: 'w-7 h-7',
-      text: 'text-3xl',
+      dot: 'w-8 h-8',
+      text: 'text-6xl',
       badge: 'text-xs px-2.5 py-0.5',
       subtitle: 'text-sm',
       gap: 'gap-3.5',
     },
     xl: {
-      icon: 'w-16 h-16',
+      icon: 'w-20 h-20',
       iconSvg: 'w-9 h-9',
-      text: 'text-4xl sm:text-5xl',
+      dot: 'w-8 h-8',
+      text: 'text-6xl sm:text-7xl',
       badge: 'text-xs px-3 py-1',
       subtitle: 'text-base',
       gap: 'gap-4',
@@ -89,64 +88,30 @@ export const Logo: React.FC<LogoProps> = ({
   const isDarkBg = theme === 'dark';
 
   const IconElement = (
-    <div
-      className={`${currentSize.icon} rounded-2xl flex items-center justify-center shrink-0 select-none shadow-sm transition-transform duration-200 group-hover:scale-105`}
-      style={{
-        backgroundColor: THEME_COLORS.primary,
-        color: THEME_COLORS.textLight,
-      }}
+    <svg
+      viewBox="0 0 100 100"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`${variant === 'icon-only' ? currentSize.icon : currentSize.dot} rotate-30 shrink-0 self-end mb-[0.08em] select-none transition-transform duration-200 group-hover:scale-105`}
+      fill={isDarkBg ? THEME_COLORS.textLight : THEME_COLORS.star}
+      aria-hidden="true"
     >
-      <svg
-        viewBox="0 0 40 40"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className={`${currentSize.iconSvg}`}
-      >
-        <path
-          d="M10 20C10 14.4772 14.4772 10 20 10C25.5228 10 30 14.4772 30 20"
-          stroke={THEME_COLORS.textLight}
-          strokeWidth="3.5"
-          strokeLinecap="round"
-        />
-        <circle cx="20" cy="18" r="3.5" fill={THEME_COLORS.primary} />
-        <circle cx="10" cy="28" r="3" fill={THEME_COLORS.textLight} />
-        <circle cx="30" cy="28" r="3" fill={THEME_COLORS.textLight} />
-        <circle cx="20" cy="31" r="2.5" fill={THEME_COLORS.secondary} />
-        <line x1="12" y1="26" x2="18" y2="20" stroke={THEME_COLORS.textLight} strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="28" y1="26" x2="22" y2="20" stroke={THEME_COLORS.textLight} strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="12" y1="28" x2="28" y2="28" stroke={THEME_COLORS.textLight} strokeWidth="2" strokeDasharray="2 2" />
-      </svg>
-    </div>
+      <path d="M50 0 L58 35 L90 20 L68 46 L100 50 L68 54 L90 80 L58 65 L50 100 L42 65 L10 80 L32 54 L0 50 L32 46 L10 20 L42 35 Z" />
+    </svg>
   );
 
   const TextElement = (
-    <div className="flex flex-col select-none">
-      <div className="flex items-center gap-2">
-        <span
-          className={`font-black tracking-tight ${currentSize.text} leading-none`}
-          style={{ color: isDarkBg ? THEME_COLORS.textLight : THEME_COLORS.textDark }}
-        >
-          Ideias
-          <span style={{ color: THEME_COLORS.primary }}>Em</span>
-          <span style={{ color: THEME_COLORS.secondary }}>Rede</span>
-        </span>
-      </div>
-
-      {showSubtitle && (
-        <span
-          className={`font-medium tracking-wide mt-1 ${currentSize.subtitle}`}
-          style={{ color: isDarkBg ? 'rgba(242, 240, 247, 0.7)' : THEME_COLORS.gray }}
-        >
-          Planejamento de Política & Debates
-        </span>
-      )}
-    </div>
+    <span
+      className={`font-black tracking-tight ${currentSize.text} leading-none select-none`}
+      style={{ color: isDarkBg ? THEME_COLORS.textLight : THEME_COLORS.textDark }}
+    >
+      contraponto
+    </span>
   );
 
   const innerContent = (
-    <div className={`inline-flex items-center ${currentSize.gap} group ${className}`}>
-      {variant !== 'text-only' && IconElement}
+    <div className={`inline-flex items-end gap-0 group ${className}`}>
       {variant !== 'icon-only' && TextElement}
+      {variant !== 'text-only' && IconElement}
     </div>
   );
 

@@ -12,7 +12,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth }) => {
   const navLinks = [
     { label: 'INÍCIO', href: '#hero' },
     { label: 'SOBRE A INICIATIVA', href: '#sobre-iniciativa' },
-    { label: 'COMO ENSINAR', href: '#como-aprimorar' },
+    { label: 'COMO FUNCIONA', href: '#como-aprimorar' },
     { label: 'EQUIPE', href: '#sobre-time' },
     { label: 'CONTATO', href: '#contato' },
   ];
@@ -30,7 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth }) => {
         <div className="flex items-center justify-between h-24">
           
           {/* Left: Reusable Logo Component */}
-          <Logo href="#hero" showBadge showSubtitle size="md" onClick={() => handleNavClick('#hero')} />
+          <Logo href="#hero" showBadge size="md" onClick={() => handleNavClick('#hero')} />
 
           {/* Center: Capsule Navbar */}
           <nav className="hidden lg:flex items-center gap-1 px-4 py-1.5 rounded-full border border-[#E4D6FF] bg-[#EAE0FF]/50 shadow-xs">
@@ -74,7 +74,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth }) => {
             <button
               type="button"
               onClick={() => onOpenAuth('register')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#AEF03D] hover:bg-[#93CC26] text-[#231942] text-xs font-extrabold uppercase tracking-wider shadow-md shadow-[#AEF03D]/20 transition-all transform active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#FF0044] hover:bg-[#D6003B] text-white text-xs font-extrabold uppercase tracking-wider shadow-md shadow-[#FF0044]/20 transition-all transform active:scale-95 cursor-pointer"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Criar Conta</span>

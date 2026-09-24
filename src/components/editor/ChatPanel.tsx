@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Send, Sparkles, FileText, X } from 'lucide-react';
+import { Send, FileText, X } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 
 export interface ChatMessage {
@@ -55,25 +55,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       className="w-80 shrink-0 h-full flex flex-col border-l bg-white/60"
       style={{ borderColor: THEME_COLORS.borderLight }}
     >
-      {/* Header */}
+      {/* Header 
       <div
         className="shrink-0 p-4 border-b"
         style={{ borderColor: THEME_COLORS.borderLight }}
       >
-        <div className="flex items-center gap-2">
-          <span
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
-            style={{ backgroundColor: THEME_COLORS.primary }}
-          >
-            <Sparkles className="w-4 h-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-black tracking-tight" style={{ color: THEME_COLORS.textDark }}>
-              Contraponto
-            </h2>
-          </div>
+        <div className="h-8 flex items-center">
+          <Logo variant="full" size="sm" className="origin-left scale-75" />
         </div>
-      </div>
+      </div>*/}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { ZoomIn, ZoomOut, ArrowLeft, Maximize, Layers, ChevronLeft, ChevronRight, ChevronDown, Download, FileCode, FileText, FileType, Presentation } from 'lucide-react';
+import { ZoomIn, ZoomOut, ArrowLeft, Maximize, Layers, ChevronLeft, ChevronRight, ChevronDown, Download, FileCode, FileText, FileType, Presentation, Trash2 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import { layerSignature } from '../../utils/htmlLayers';
 import type { HtmlLayer } from '../../utils/htmlLayers';
@@ -22,6 +22,8 @@ interface HtmlCanvasProps {
   isSlides: boolean;
   onExportPdf: () => void;
   exportingPdf?: boolean;
+  /** Quando definido, exibe o botão de lixeira no menu superior. */
+  onDelete?: () => void;
   /** Incrementado quando o backend devolve uma nova versão do HTML. */
   serverRevision?: number;
 }
@@ -43,6 +45,7 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
   isSlides,
   onExportPdf,
   exportingPdf = false,
+  onDelete,
   serverRevision = 0,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -289,6 +292,19 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
             </>
           )}
         </div>
+
+        {onDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="p-2 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+            style={{ color: '#dc2626' }}
+            title="Excluir material"
+            aria-label="Excluir material"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Barra fixa de formatação rich text */}
