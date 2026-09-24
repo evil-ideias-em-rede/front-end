@@ -29,6 +29,7 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
   const [description, setDescription] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [fileName, setFileName] = useState('');
+  const [fileContent, setFileContent] = useState('');
   const [saved, setSaved] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,9 +49,17 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
   };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]?.name ?? '';
+    const file = e.target.files?.[0];
+    const f = file?.name ?? '';
     setFileName(f);
-    if (f) setDescription('');
+    setFileContent('');
+    if (file) {
+      setDescription('');
+      const selectedFile = file;
+      const reader = new FileReader();
+      reader.onload = () => setFileContent(String(reader.result || ''));
+      reader.readAsDataURL(selectedFile);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -62,10 +71,12 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
     timerRef.current = setTimeout(() => {
       onCreated({
         id: crypto.randomUUID(),
-        title: name.trim(),
+        title: fileName || name.trim(),
         description: description.trim() || undefined,
         qtd: selectedIds.length,
         htmlContent: buildTemplateHtml(name.trim()),
+        fileName: fileName || undefined,
+        fileContent: fileContent || undefined,
         turmaIds: selectedIds,
       });
       onClose();
@@ -212,7 +223,7 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
                   {fileName && (
                     <button
                       type="button"
-                      onClick={() => setFileName('')}
+                      onClick={() => { setFileName(''); setFileContent(''); }}
                       className="mt-1 text-[10px] font-bold text-stone-500 hover:text-red-600 text-left cursor-pointer"
                     >
                       Remover arquivo

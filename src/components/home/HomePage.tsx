@@ -2,9 +2,15 @@
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { 
+<<<<<<< HEAD
   MessageSquareQuote, LayoutTemplate, BookOpen,
   FileText, Clock, BookMarked,
   FolderOpen, Presentation, Zap
+=======
+  MessageSquareQuote, LayoutTemplate, BookOpen, 
+  FileText, Clock,
+  FolderOpen, Presentation, Zap, MoreVertical, Pencil, Trash2, X
+>>>>>>> 35e464a (add: adicionando suporte aos arquivos de pdf e html em materiais)
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import { HtmlPreview } from '../general/HtmlPreview';
@@ -26,6 +32,13 @@ export const HomePage: React.FC<HomePageProps> = () => {
   const [workflowSessions, setWorkflowSessions] = useState<api.WorkflowSessionSummary[]>([]);
   const [workflowLoading, setWorkflowLoading] = useState(true);
   const [openingSessionId, setOpeningSessionId] = useState<string | null>(null);
+  const [titleOverrides, setTitleOverrides] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('contraponto.workflow_titles') ?? '{}'); } catch { return {}; }
+  });
+  const [optionsSessionId, setOptionsSessionId] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [deletedSessionIds, setDeletedSessionIds] = useState<Set<string>>(() => new Set());
+  const [editingTitle, setEditingTitle] = useState('');
 
   const [renameTarget, setRenameTarget] =
     useState<Material | null>(null);
@@ -151,6 +164,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
     .sort((a, b) => (b.lastModifiedAt ?? 0) - (a.lastModifiedAt ?? 0));
 
   const visibleWorkflowSessions = workflowSessions.filter((session) => (
+    !deletedSessionIds.has(session.id) &&
     filterCategory === 'all'
       || workflowCategories[session.selected_agent ?? 'brainstorm'] === filterCategory
   ));
@@ -167,7 +181,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
     setOpeningSessionId(session.id);
 
     const agent = session.selected_agent ?? 'brainstorm';
-    const label = agentLabels[agent] ?? agent;
+    const label = titleOverrides[session.id] ?? agentLabels[agent] ?? agent;
     const type = agentTypes[agent] ?? 'brainstorm';
     const params = new URLSearchParams({
       type,
@@ -193,6 +207,34 @@ export const HomePage: React.FC<HomePageProps> = () => {
     } finally {
       setOpeningSessionId(null);
     }
+  };
+
+  const deleteWorkflow = async (session: api.WorkflowSessionSummary) => {
+    if (!window.confirm('Excluir este plano e todo o seu progresso?')) return;
+    setDeletedSessionIds((current) => new Set(current).add(session.id));
+    setWorkflowSessions((current) => current.filter((item) => item.id !== session.id));
+    setOptionsSessionId(null);
+    setEditingSessionId(null);
+    try {
+      await api.deleteWorkflowSession(session.id);
+    } catch {
+      // Se a exclusão falhar, repõe o card para não esconder uma sessão válida.
+      setDeletedSessionIds((current) => {
+        const next = new Set(current);
+        next.delete(session.id);
+        return next;
+      });
+      setWorkflowSessions((current) => [session, ...current]);
+    }
+  };
+
+  const renameWorkflow = (session: api.WorkflowSessionSummary, title: string) => {
+    const normalizedTitle = title.trim().slice(0, 13);
+    if (!normalizedTitle) return;
+    const next = { ...titleOverrides, [session.id]: normalizedTitle };
+    setTitleOverrides(next);
+    localStorage.setItem('contraponto.workflow_titles', JSON.stringify(next));
+    setOptionsSessionId(null);
   };
 
   return (
@@ -438,20 +480,86 @@ export const HomePage: React.FC<HomePageProps> = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 [grid-auto-flow:dense]">
             {visibleWorkflowSessions.map((session, idx) => {
               const agent = session.selected_agent ?? 'brainstorm';
-              const label = agentLabels[agent] ?? agent;
+              const label = titleOverrides[session.id] ?? agentLabels[agent] ?? agent;
               return (
                 <div
                   key={`session-${session.id}`}
                   onClick={() => void openWorkflowSession(session)}
+<<<<<<< HEAD
                   className={`template-card-in rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all hover:shadow-md hover:-translate-y-1 cursor-pointer group ${openingSessionId === session.id ? 'opacity-60' : ''}`}
                   style={{ backgroundColor: '#ffffff40', borderColor: THEME_COLORS.borderLight, animationDelay: `${350 + idx * 90}ms` }}
+=======
+                  className={`relative rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all hover:shadow-md hover:-translate-y-1 cursor-pointer group ${openingSessionId === session.id ? 'opacity-60' : ''}`}
+                  style={{ backgroundColor: '#ffffff40', borderColor: THEME_COLORS.borderLight }}
+>>>>>>> 35e464a (add: adicionando suporte aos arquivos de pdf e html em materiais)
                 >
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setOptionsSessionId((current) => current === session.id ? null : session.id);
+                      setEditingTitle(titleOverrides[session.id] ?? label);
+                    }}
+                    className="absolute top-3 right-3 z-10 rounded-full bg-white/80 p-2 text-stone-500 shadow-sm hover:bg-violet-50 hover:text-violet-600 cursor-pointer"
+                    title="Opções: editar título ou excluir"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                  {optionsSessionId === session.id && (
+                    <div
+                      className="absolute top-12 right-3 z-20 w-44 rounded-xl border bg-white p-1.5 shadow-xl"
+                      style={{ borderColor: THEME_COLORS.borderLight }}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => { setEditingSessionId(session.id); setOptionsSessionId(null); }}
+                        className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold text-stone-700 hover:bg-violet-50 hover:text-violet-700 cursor-pointer"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Editar título
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => { event.stopPropagation(); void deleteWorkflow(session); }}
+                        className="mt-1 flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold text-red-600 hover:bg-red-50 cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Excluir plano
+                      </button>
+                    </div>
+                  )}
+                  {editingSessionId === session.id && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/30 p-4" onClick={() => setEditingSessionId(null)}>
+                      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+                        <div className="mb-4 flex items-center justify-between">
+                          <div>
+                            <h3 className="text-sm font-black" style={{ color: THEME_COLORS.textDark }}>Editar título</h3>
+                            <p className="mt-0.5 text-xs text-stone-500">Use até 13 caracteres no card.</p>
+                          </div>
+                          <button type="button" onClick={() => setEditingSessionId(null)} className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 cursor-pointer"><X className="h-4 w-4" /></button>
+                        </div>
+                        <input
+                          autoFocus
+                          value={editingTitle}
+                          maxLength={13}
+                          onChange={(event) => setEditingTitle(event.target.value)}
+                          className="w-full rounded-xl border px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-200"
+                          style={{ borderColor: THEME_COLORS.borderLight }}
+                        />
+                        <div className="mt-4 flex justify-end gap-2">
+                          <button type="button" onClick={() => setEditingSessionId(null)} className="rounded-xl px-3 py-2 text-xs font-bold text-stone-600 hover:bg-stone-100 cursor-pointer">Cancelar</button>
+                          <button type="button" onClick={() => renameWorkflow(session, editingTitle)} className="rounded-xl bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-700 cursor-pointer">Salvar</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="h-40 relative overflow-hidden shrink-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(226, 221, 240, 0.4)' }}>
                     <MessageSquareQuote className="w-14 h-14" style={{ color: THEME_COLORS.primary }} />
                   </div>
                   <div className="p-6 flex flex-col flex-1 space-y-3">
                     <h3 className="line-clamp-1 text-base font-bold leading-snug group-hover:text-[#7C3AED] transition-colors" style={{ color: THEME_COLORS.textDark }}>
-                      {label}
+                      {titleOverrides[session.id] ?? label}
                     </h3>
                     <p className="line-clamp-3 text-xs leading-relaxed" style={{ color: THEME_COLORS.gray }}>
                       {session.last_message || 'Sessão iniciada; continue a conversa.'}

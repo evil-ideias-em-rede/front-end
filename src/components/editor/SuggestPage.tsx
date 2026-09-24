@@ -73,6 +73,18 @@ function backendAgentFromType(type?: string): string | undefined {
   }
 }
 
+function typeFromBackendAgent(agent?: string | null): string | undefined {
+  switch (agent) {
+    case 'debate': return 'debate';
+    case 'lesson_plan': return 'plano';
+    case 'political_leteracy': return 'materiais';
+    case 'writing_workshop': return 'redacao';
+    case 'slides': return 'slides';
+    case 'generic': return 'complementares';
+    default: return undefined;
+  }
+}
+
 interface PlanningItem {
   id: string | number;
   titulo: string;
@@ -159,6 +171,7 @@ export const SuggestPage: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detalhe, setDetalhe] = useState<AudienciaDetalhe | null>(null);
   const [loadingDetalhe, setLoadingDetalhe] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
   const [serie, setSerie] = useState<string | null>(serieParam);
   const [tipoMaterial, setTipoMaterial] = useState<string | null>(() => tipoInicialFromUrl(urlType));
   const [error, setError] = useState<string | null>(null);
@@ -269,7 +282,25 @@ export const SuggestPage: React.FC = () => {
     try {
       const audiencia = await api.getAudiencia<any>(id);
       if (sessionId) await api.selectWorkflowPlanningItem(sessionId, id);
-      setDetalhe(normalizeAudiencia(audiencia));
+      const normalized = normalizeAudiencia(audiencia);
+      setDetalhe(normalized);
+
+      // O clique indica interesse no tema, mas ainda não confirma a fonte.
+      // Enviamos esse contexto ao agente como mensagem interna para que ele
+      // possa levar a audiência em conta nas próximas respostas sem duplicar
+      // a mensagem no chat visível.
+      if (sessionId) {
+        const context = [
+          '[Contexto de navegação — audiência observada pelo professor]',
+          `ID: ${normalized.id}`,
+          `Título: ${normalized.titulo}`,
+          `Resumo: ${normalized.resumo}`,
+          'O professor apenas clicou para consultar este tema; a audiência ainda não foi confirmada como fonte.',
+        ].join('\n');
+        void api.sendWorkflowMessage(sessionId, context, 'brainstorm', true).catch((cause) => {
+          setSessionError(cause instanceof Error ? cause.message : 'Não foi possível informar o agente sobre o tema clicado.');
+        });
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível carregar a audiência.');
     } finally {
@@ -314,33 +345,91 @@ export const SuggestPage: React.FC = () => {
   };
 
   const handleProceed = async () => {
+    if (advancing) return;
+    setAdvancing(true);
     // Validação de série/tipo temporariamente desativada para prototipação:
     // o alerta de erro (inline + toast) foi ocultado e o fluxo segue normal.
     // Para reativar, basta restaurar os blocos de setError/setToast abaixo.
     setError(null);
     if (!sessionId) {
       setError(sessionError ?? 'Envie uma mensagem ao brainstorm antes de avançar.');
+      setAdvancing(false);
       return;
     }
     try {
       const result = await api.advanceWorkflow(sessionId);
       if (!result.allowed) {
         setError('O brainstorm ainda não concluiu o planejamento. Converse mais um pouco com o agente.');
+        setAdvancing(false);
         return;
+      }
+
+      // Se o agente final já deixou um HTML no sandbox, apenas abrimos o editor.
+      // Caso contrário, pedimos a geração aqui e só navegamos quando o arquivo
+      // estiver disponível para o editor.
+      const session = await api.getWorkflowSession(sessionId);
+      const finalAgent = session.selected_agent
+        ?? backendAgentFromType(tipoLabelToId(tipoMaterial, urlType))
+        ?? 'generic';
+      let html = '';
+      try {
+        html = await api.getWorkflowHtml(sessionId);
+      } catch {
+        // HTML ainda não existe: o agente final precisa gerá-lo.
+      }
+      const selectedAudienceMessage = `Escolhi a audiência de ID ${detalhe?.id ?? 'desconhecido'}: ${detalhe?.titulo ?? 'sem título'}. Descrição: ${detalhe?.resumo ?? 'sem descrição'}`;
+      setMessages((prev) => [...prev, {
+        id: `selected-audience-${Date.now()}`,
+        role: 'user',
+        text: selectedAudienceMessage,
+      }]);
+      if (!html) {
+        await api.sendWorkflowMessage(sessionId, selectedAudienceMessage, finalAgent, true);
+        const generationResponse = await api.sendWorkflowMessage(
+          sessionId,
+          `Gere o material final "${tipoMaterial ?? 'Novo material'}"${serie ? ` para ${serie}` : ''} usando a audiência escolhida e salve o resultado completo em HTML.html.`,
+          finalAgent,
+          true,
+        );
+        const generationReply = String(
+          generationResponse?.message?.content
+            ?? generationResponse?.reply
+            ?? '',
+        ).trim();
+        if (generationReply) {
+          setMessages((prev) => [...prev, {
+            id: `generation-${Date.now()}`,
+            role: 'assistant',
+            text: generationReply,
+          }]);
+        }
+        for (let attempt = 0; attempt < 8 && !html; attempt += 1) {
+          try {
+            html = await api.getWorkflowHtml(sessionId);
+          } catch {
+            await new Promise((resolve) => window.setTimeout(resolve, 1000));
+          }
+        }
+        if (!html) {
+          throw new Error('O agente não terminou de gerar o material HTML.');
+        }
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível avançar para o agente final.');
+      setAdvancing(false);
       return;
     }
     // O material ganha um título próprio (editável no editor), não o da audiência.
     const titulo = `${tipoMaterial ?? 'Novo material'}${serie ? ` — ${serie}` : ''}`;
     const params = new URLSearchParams();
     params.set('title', titulo);
-    params.set('type', tipoLabelToId(tipoMaterial, urlType));
+    const sessionAgent = (await api.getWorkflowSession(sessionId)).selected_agent;
+    params.set('type', typeFromBackendAgent(sessionAgent) ?? tipoLabelToId(tipoMaterial, urlType));
     if (serie) params.set('serie', serie);
     if (detalhe) params.set('audienciaId', detalhe.id);
     params.set('sessionId', sessionId);
     navigate(`/home/editor/material?${params.toString()}`);
+    setAdvancing(false);
   };
 
   return (
@@ -386,6 +475,7 @@ export const SuggestPage: React.FC = () => {
             tipoMaterial={tipoMaterial}
             error={error}
             onProceed={handleProceed}
+            proceedDisabled={advancing || loadingSugestoes}
             onSelectAudiencia={handleSelect}
           />
         </div>
@@ -397,6 +487,7 @@ export const SuggestPage: React.FC = () => {
           placeholder="Pergunte ao Contraponto..."
           contextLabel="Fontes primárias — audiências"
           contextIcon="document"
+          busy={advancing}
           selectionLabel={detalhe?.titulo}
           onClearSelection={() => {
             setSelectedId(null);

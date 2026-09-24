@@ -1,4 +1,4 @@
-﻿export interface User {
+export interface User {
   name: string;
   email: string;
 }
@@ -19,6 +19,8 @@ export interface Material {
   fileType: 'pdf' | 'html';
   qtd: number;
   htmlContent: string;
+  fileName?: string;
+  fileContent?: string;
   fileUrl?: string;
   turmaIds?: string[];
   lastModified?: string;
@@ -43,6 +45,8 @@ export interface Template {
   qtd: number;
   description?: string;
   htmlContent: string;
+  fileName?: string;
+  fileContent?: string;
   turmaIds?: string[];
   lastModifiedAt?: number;
 }

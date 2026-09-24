@@ -53,6 +53,7 @@ export const MaterialEditorPage: React.FC = () => {
 
   const [html, setHtml] = useState<string>(() => sessionId ? '' : parseHtmlLayers(EDITOR_MOCK_HTML).markedHtml);
   const [backendError, setBackendError] = useState<string | null>(null);
+  const [llmBusy, setLlmBusy] = useState(Boolean(sessionId));
   const [exportingPdf, setExportingPdf] = useState(false);
   const [hasPendingManualEdits, setHasPendingManualEdits] = useState(false);
   const manualEditVersionRef = useRef(0);
@@ -78,6 +79,7 @@ export const MaterialEditorPage: React.FC = () => {
     let active = true;
     const restoreMaterial = async () => {
       try {
+        setLlmBusy(true);
         setBackendError(null);
         const [session, existingHtml] = await Promise.all([
           api.getWorkflowSession(sessionId),
@@ -135,6 +137,8 @@ export const MaterialEditorPage: React.FC = () => {
         }
       } catch (cause) {
         if (active) setBackendError(cause instanceof Error ? cause.message : 'Não foi possível gerar o material.');
+      } finally {
+        if (active) setLlmBusy(false);
       }
     };
     void restoreMaterial();
@@ -218,12 +222,15 @@ export const MaterialEditorPage: React.FC = () => {
   }, []);
 
   const handleEditorChat = async (text: string) => {
+    if (llmBusy) return;
+    setLlmBusy(true);
     const id = `m-${Date.now()}`;
     const target = selectedLayer ? `a camada "${selectedLayer.label}"` : 'o documento';
     const pageSuffix = pages.length > 1 ? ` (página ${safePageIndex + 1})` : '';
     setEditorMessages((prev) => [...prev, { id, role: 'user', text }]);
     if (!sessionId) {
       setEditorMessages((prev) => [...prev, { id: `${id}-r`, role: 'assistant', text: `Aplicarei mudanças em ${target}${pageSuffix} conforme: "${text}".` }]);
+      setLlmBusy(false);
       return;
     }
     try {
@@ -241,11 +248,20 @@ export const MaterialEditorPage: React.FC = () => {
       setHtml(parseHtmlLayers(generated).markedHtml);
       setServerRevision((revision) => revision + 1);
       setBackendError(null);
-      setEditorMessages((prev) => [...prev, { id: `${id}-r`, role: 'assistant', text: String(response?.message?.content ?? 'Atualizei o material.') }]);
+      const responseText = typeof response?.message?.content === 'string'
+        ? response.message.content.trim()
+        : '';
+      setEditorMessages((prev) => [...prev, {
+        id: `${id}-r`,
+        role: 'assistant',
+        text: responseText || 'Atualizei o material conforme solicitado.',
+      }]);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Não foi possível atualizar o material.';
       setBackendError(message);
       setEditorMessages((prev) => [...prev, { id: `${id}-r`, role: 'assistant', text: message }]);
+    } finally {
+      setLlmBusy(false);
     }
   };
 
@@ -267,6 +283,7 @@ export const MaterialEditorPage: React.FC = () => {
   };
 
   const handleBack = () => {
+    if (llmBusy) return;
     const params = new URLSearchParams();
     params.set('title', documentTitle);
     if (materialType) params.set('type', materialType);
@@ -274,6 +291,13 @@ export const MaterialEditorPage: React.FC = () => {
     if (audienciaId) params.set('audienciaId', audienciaId);
     if (sessionId) params.set('sessionId', sessionId);
     navigate(`/home/editor?${params.toString()}`);
+  };
+
+  const handleDelete = async () => {
+    if (!sessionId || llmBusy) return;
+    if (!window.confirm('Excluir este plano de aula e todo o seu progresso?')) return;
+    await api.deleteWorkflowSession(sessionId);
+    navigate('/home');
   };
 
   if (!hasTitle) {
@@ -302,6 +326,7 @@ export const MaterialEditorPage: React.FC = () => {
             {backendError}
           </div>
         )}
+        <div className={`flex flex-1 min-w-0 min-h-0 ${llmBusy ? 'pointer-events-none opacity-60' : ''}`}>
         <LayerSidebar
           layers={pageLayers}
           selectedId={selectedId}
@@ -318,6 +343,7 @@ export const MaterialEditorPage: React.FC = () => {
           onSelectById={handleSelectById}
           onCommitDocument={handleCommitPage}
           onBack={handleBack}
+          navigationLocked={llmBusy}
           title={documentTitle}
           onTitleChange={(nextTitle) => {
             setDocumentTitle(nextTitle);
@@ -329,6 +355,7 @@ export const MaterialEditorPage: React.FC = () => {
           orientation={orientation}
           isSlides={materialType === 'slides'}
           onExportPdf={() => void handleExportPdf()}
+          onDelete={() => void handleDelete()}
           exportingPdf={exportingPdf}
           serverRevision={serverRevision}
           onDelete={
@@ -340,6 +367,7 @@ export const MaterialEditorPage: React.FC = () => {
               : undefined
           }
         />
+        </div>
 
         <ChatPanel
           messages={editorMessages}
@@ -351,6 +379,7 @@ export const MaterialEditorPage: React.FC = () => {
           }
           contextLabel={selectedLayer ? selectedLayer.label : documentTitle}
           contextIcon={selectedLayer ? 'layer' : 'document'}
+          busy={llmBusy}
         />
       </div>
 

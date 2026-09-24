@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Send, FileText, X } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeSanitize from 'rehype-sanitize';
 
 export interface ChatMessage {
   id: string;
@@ -16,7 +19,16 @@ interface ChatPanelProps {
   contextIcon?: 'layer' | 'document';
   selectionLabel?: string;
   onClearSelection?: () => void;
+  busy?: boolean;
 }
+
+// Alguns prompts usam tags internas para separar análise, edição e pedido de
+// esclarecimento. Elas não são conteúdo para o professor e, como o Markdown
+// é sanitizado, poderiam ocultar também o texto dentro delas.
+const stripAgentControlTags = (text: string) => text.replace(
+  /<\/?(?:source_analysis|planning|lesson_plan|teacher_notes|edits|clarification)\b[^>]*>/gi,
+  '',
+).trim();
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
   messages,
@@ -24,10 +36,40 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   placeholder = 'Descreva uma mudança...',
   selectionLabel,
   onClearSelection,
+  busy = false,
 }) => {
   const [draft, setDraft] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const initialScrollDoneRef = useRef(false);
+  const previousMessagesLengthRef = useRef(0);
+
+  // Ao entrar em uma seção, mostra as mensagens mais recentes uma única vez.
+  // Não acompanha cada nova mensagem para não roubar a posição manual do usuário.
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const isInitialLoad = !initialScrollDoneRef.current;
+    const receivedAssistantMessage =
+      messages.length > previousMessagesLengthRef.current
+      && messages[messages.length - 1]?.role === 'assistant';
+    if (!isInitialLoad && !receivedAssistantMessage) {
+      previousMessagesLengthRef.current = messages.length;
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => {
+      const element = messagesRef.current;
+      if (element) {
+        element.scrollTo({
+          top: element.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+      initialScrollDoneRef.current = true;
+      previousMessagesLengthRef.current = messages.length;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [messages.length]);
 
   // Auto-expansão até 5 linhas; acima disso, scroll interno.
   useEffect(() => {
@@ -43,7 +85,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const text = draft.trim();
-    if (!text) return;
+    if (!text || busy) return;
     onSend(text);
     setDraft('');
     setIsTyping(true);
@@ -66,11 +108,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>*/}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div ref={messagesRef} className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[85%] min-w-0 px-3.5 py-2.5 rounded-2xl text-xs font-medium leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] ${
+              className={`max-w-[85%] min-w-0 px-3.5 py-2.5 rounded-2xl text-xs font-medium leading-relaxed [overflow-wrap:anywhere] ${
                 msg.role === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm'
               }`}
               style={
@@ -79,17 +121,44 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   : { backgroundColor: THEME_COLORS.lightPrimary, color: THEME_COLORS.textDark }
               }
             >
-              {msg.text}
+              {msg.role === 'assistant' ? (
+                <div className="chat-markdown">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeSanitize]}
+                    components={{
+                      a: ({ node: _node, ...props }) => (
+                        <a {...props} target="_blank" rel="noreferrer" />
+                      ),
+                      code: ({ node: _node, className, children, ...props }) => {
+                        const inline = !className;
+                        return inline ? (
+                          <code {...props} className="rounded bg-black/10 px-1 py-0.5 font-mono text-[0.9em]">
+                            {children}
+                          </code>
+                        ) : (
+                          <code {...props} className="block overflow-x-auto rounded-lg bg-black/10 p-2 font-mono text-[0.9em]">
+                            {children}
+                          </code>
+                        );
+                      },
+                    }}
+                  >
+                    {stripAgentControlTags(msg.text)}
+                  </ReactMarkdown>
+                </div>
+              ) : msg.text}
             </div>
           </div>
         ))}
 
-        {isTyping && (
+        {(isTyping || busy) && (
           <div className="flex justify-start">
             <div
               className="px-3.5 py-2.5 rounded-2xl rounded-bl-sm text-xs font-semibold flex items-center gap-1.5"
               style={{ backgroundColor: THEME_COLORS.lightPrimary, color: THEME_COLORS.gray }}
             >
+              {busy && <span>Contraponto está pensando</span>}
               <span className="animate-pulse">●</span>
               <span className="animate-pulse" style={{ animationDelay: '150ms' }}>●</span>
               <span className="animate-pulse" style={{ animationDelay: '300ms' }}>●</span>
@@ -128,6 +197,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           <textarea
             ref={textareaRef}
             value={draft}
+            disabled={busy}
             onChange={(e) => setDraft(e.target.value)}
             placeholder={placeholder}
             rows={1}
@@ -142,7 +212,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           />
           <button
             type="submit"
-            disabled={!draft.trim()}
+            disabled={!draft.trim() || busy}
             className="w-9 h-9 rounded-xl place-self-end flex items-center justify-center text-white transition-all cursor-pointer disabled:opacity-40 disabled:cursor-default"
             style={{ backgroundColor: THEME_COLORS.primary }}
           >
