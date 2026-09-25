@@ -145,14 +145,19 @@ export const HomePage: React.FC<HomePageProps> = () => {
     },
   ];
 
-  const visibleWorkflowSessions = workflowSessions.filter((session) => (
+  // Sessões abertas a partir de um template pertencem ao editor do template,
+  // não à área de continuação dos fluxos de criação da página inicial.
+  const homeWorkflowSessions = workflowSessions.filter((session) => (
+    session.selected_agent !== 'editor_geral' && session.selected_agent !== 'template_editor'
+  ));
+  const visibleWorkflowSessions = homeWorkflowSessions.filter((session) => (
     !deletedSessionIds.has(session.id) &&
     (filterCategory === 'all'
       || workflowCategories[session.selected_agent ?? 'brainstorm'] === filterCategory)
   ));
-  const continuationCount = workflowSessions.length;
+  const continuationCount = homeWorkflowSessions.length;
   const categoryCount = (category: string) => (
-    workflowSessions.filter((session) => (
+    homeWorkflowSessions.filter((session) => (
       workflowCategories[session.selected_agent ?? 'brainstorm'] === category
     )).length
   );

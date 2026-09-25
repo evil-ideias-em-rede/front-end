@@ -35,7 +35,9 @@ export const MaterialEditorPage: React.FC = () => {
   const serie = searchParams.get('serie') ?? undefined;
   const audienciaId = searchParams.get('audienciaId') ?? undefined;
   const sessionId = searchParams.get('sessionId') ?? undefined;
-  const finalAgent = backendAgentFromType(materialType);
+  const finalAgent = templateId ? 'editor_geral' : backendAgentFromType(materialType);
+  const [templateSessionId, setTemplateSessionId] = useState<string | undefined>(undefined);
+  const activeSessionId = sessionId ?? templateSessionId;
 
   // Título próprio do material, editável pelo professor no toolbar.
   const [documentTitle, setDocumentTitle] = useState(initialTitle);
@@ -91,29 +93,29 @@ export const MaterialEditorPage: React.FC = () => {
   ]);
 
   useEffect(() => {
-    if (sessionId || !savedContent?.htmlContent) return;
+    if (activeSessionId || !savedContent?.htmlContent) return;
     const contentId = `${templateId ? 'template' : 'material'}:${savedContent.id}`;
     if (loadedContentIdRef.current === contentId) return;
     setHtml(parseHtmlLayers(savedContent.htmlContent).markedHtml);
     loadedContentIdRef.current = contentId;
-  }, [sessionId, savedContent, templateId]);
+  }, [activeSessionId, savedContent, templateId]);
 
   useEffect(() => {
-    if (sessionId) {
-      void api.updateWorkflowStage(sessionId, 'editor').catch(() => undefined);
+    if (activeSessionId) {
+      void api.updateWorkflowStage(activeSessionId, 'editor').catch(() => undefined);
     }
-  }, [sessionId]);
+  }, [activeSessionId]);
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!activeSessionId) return;
     let active = true;
     const restoreMaterial = async () => {
       try {
         setLlmBusy(true);
         setBackendError(null);
         const [session, existingHtml] = await Promise.all([
-          api.getWorkflowSession(sessionId),
-          api.getWorkflowHtml(sessionId).catch(() => ''),
+          api.getWorkflowSession(activeSessionId),
+          api.getWorkflowHtml(activeSessionId).catch(() => ''),
         ]);
 
         const persistedMessages: ChatMessage[] = session.messages
@@ -123,7 +125,7 @@ export const MaterialEditorPage: React.FC = () => {
             && Boolean(String(message.content ?? '').trim())
           ))
           .map((message, index) => ({
-            id: `${sessionId}-message-${index}`,
+            id: `${activeSessionId}-message-${index}`,
             role: message.role as 'user' | 'assistant',
             text: String(message.content),
           }));
@@ -142,14 +144,23 @@ export const MaterialEditorPage: React.FC = () => {
         let generated = existingHtml;
         if (!generated) {
           // Só gera na primeira abertura, quando ainda não existe HTML salvo.
-          await api.sendWorkflowMessage(
-            sessionId,
-            `Gere agora o material final "${documentTitle}"${serie ? ` para ${serie}` : ''}. Use a audiência selecionada e salve o resultado em HTML.html.`,
-            finalAgent,
-          );
+          if (templateId) {
+            await api.sendEditorMessage(
+              activeSessionId,
+              'Leia o template atual em HTML.html e mantenha-o disponível para edição. Não substitua o conteúdo por um mock.',
+              finalAgent,
+              false,
+            );
+          } else {
+            await api.sendWorkflowMessage(
+              activeSessionId,
+              `Gere agora o material final "${documentTitle}"${serie ? ` para ${serie}` : ''}. Use a audiência selecionada e salve o resultado em HTML.html.`,
+              finalAgent,
+            );
+          }
           for (let attempt = 0; attempt < 4 && !generated; attempt += 1) {
             try {
-              generated = await api.getWorkflowHtml(sessionId);
+              generated = await api.getWorkflowHtml(activeSessionId);
             } catch {
               await new Promise((resolve) => window.setTimeout(resolve, 800));
             }
@@ -175,17 +186,17 @@ export const MaterialEditorPage: React.FC = () => {
     return () => { active = false; };
   // A sessão só gera o material quando ainda não existe HTML persistido.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
+  }, [activeSessionId]);
 
   useEffect(() => {
-    if (!sessionId || !html) return;
+    if (!activeSessionId || !html) return;
     const timer = window.setTimeout(() => {
-      void api.uploadWorkflowFile(sessionId, 'HTML.html', html).catch((error) => {
+      void api.uploadWorkflowFile(activeSessionId, 'HTML.html', html).catch((error) => {
         setBackendError(error instanceof Error ? error.message : 'Não foi possível salvar o HTML.');
       });
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [html, sessionId]);
+  }, [html, activeSessionId]);
 
   const { layers } = useMemo(() => parseHtmlLayers(html), [html]);
   const pages = useMemo(() => parseHtmlPages(html), [html]);
@@ -251,6 +262,19 @@ export const MaterialEditorPage: React.FC = () => {
     setSelectedId(null);
   }, []);
 
+  const createTemplateEditorSession = async (): Promise<string> => {
+    if (activeSessionId) return activeSessionId;
+    if (!savedTemplate?.htmlContent) {
+      throw new Error('O HTML do template ainda está sendo carregado. Tente novamente em instantes.');
+    }
+    const session = await api.createWorkflowSession('editor_geral');
+    await api.updateWorkflowStage(session.id, 'editor');
+    // O agente conhece o template dentro do sandbox por este nome neutro.
+    // O nome real é reservado para a exportação.
+    await api.uploadWorkflowFile(session.id, 'HTML.html', html);
+    return session.id;
+  };
+
   const handleEditorChat = async (text: string) => {
     if (llmBusy) return;
     setLlmBusy(true);
@@ -258,23 +282,27 @@ export const MaterialEditorPage: React.FC = () => {
     const target = selectedLayer ? `a camada "${selectedLayer.label}"` : 'o documento';
     const pageSuffix = pages.length > 1 ? ` (página ${safePageIndex + 1})` : '';
     setEditorMessages((prev) => [...prev, { id, role: 'user', text }]);
-    if (!sessionId) {
+    if (!templateId && !activeSessionId) {
       setEditorMessages((prev) => [...prev, { id: `${id}-r`, role: 'assistant', text: `Aplicarei mudanças em ${target}${pageSuffix} conforme: "${text}".` }]);
       setLlmBusy(false);
       return;
     }
     try {
       setBackendError(null);
+      const currentSessionId = templateId
+        ? await createTemplateEditorSession()
+        : activeSessionId;
+      if (!currentSessionId) throw new Error('Não foi possível abrir a sessão de edição.');
       const editVersionAtSend = manualEditVersionRef.current;
       const userEdited = hasPendingManualEdits;
       // Garante que o agente leia exatamente a versão editada no canvas.
       // O autosave continua existindo, mas não deve haver corrida com o Enter.
-      await api.uploadWorkflowFile(sessionId, 'HTML.html', html);
-      const response = await api.sendEditorMessage(sessionId, text, finalAgent, userEdited);
+      await api.uploadWorkflowFile(currentSessionId, 'HTML.html', html);
+      const response = await api.sendEditorMessage(currentSessionId, text, finalAgent, userEdited);
       if (manualEditVersionRef.current === editVersionAtSend) {
         setHasPendingManualEdits(false);
       }
-      const generated = await api.getWorkflowHtml(sessionId);
+      const generated = await api.getWorkflowHtml(currentSessionId);
       setHtml(parseHtmlLayers(generated).markedHtml);
       setServerRevision((revision) => revision + 1);
       setBackendError(null);
@@ -286,6 +314,12 @@ export const MaterialEditorPage: React.FC = () => {
         role: 'assistant',
         text: responseText || 'Atualizei o material conforme solicitado.',
       }]);
+      if (templateId && !sessionId) {
+        setTemplateSessionId(currentSessionId);
+        const params = new URLSearchParams(searchParams);
+        params.set('sessionId', currentSessionId);
+        navigate(`/home/editor/material?${params.toString()}`, { replace: true });
+      }
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Não foi possível atualizar o material.';
       setBackendError(message);
@@ -301,7 +335,18 @@ export const MaterialEditorPage: React.FC = () => {
     try {
       setBackendError(null);
       setExportingFormat(format);
-      await api.downloadTemplateFile(templateId, format);
+      if (activeSessionId) {
+        // Mantém a mesma base de nome usada na exportação do detalhe do
+        // template (sem deixar HTML.html escapar para o download).
+        await api.downloadWorkflowFile(
+          activeSessionId,
+          html,
+          format,
+          savedTemplate?.fileName || documentTitle,
+        );
+      } else {
+        await api.downloadTemplateFile(templateId, format);
+      }
     } catch (cause) {
       setBackendError(cause instanceof Error ? cause.message : `Não foi possível exportar como ${format.toUpperCase()}.`);
     } finally {
@@ -315,7 +360,7 @@ export const MaterialEditorPage: React.FC = () => {
       return;
     }
 
-    if (!sessionId) {
+    if (!activeSessionId) {
       setBackendError('Salve o material em uma sessão antes de exportar o PDF.');
       return;
     }
@@ -323,7 +368,7 @@ export const MaterialEditorPage: React.FC = () => {
     try {
       setBackendError(null);
       setExportingFormat('pdf');
-      await api.downloadWorkflowPdf(sessionId, html, orientation);
+      await api.downloadWorkflowPdf(activeSessionId, html, orientation);
     } catch (cause) {
       setBackendError(cause instanceof Error ? cause.message : 'Não foi possível exportar o PDF.');
     } finally {
@@ -338,7 +383,7 @@ export const MaterialEditorPage: React.FC = () => {
     if (materialType) params.set('type', materialType);
     if (serie) params.set('serie', serie);
     if (audienciaId) params.set('audienciaId', audienciaId);
-    if (sessionId) params.set('sessionId', sessionId);
+    if (activeSessionId) params.set('sessionId', activeSessionId);
     if (materialId) params.set('materialId', materialId);
     navigate(`/home/editor?${params.toString()}`);
   };
@@ -387,7 +432,7 @@ export const MaterialEditorPage: React.FC = () => {
           onCommitDocument={handleCommitPage}
           onBack={handleBack}
           navigationLocked={llmBusy}
-          backDisabled={!sessionId}
+          backDisabled={Boolean(templateId) || !activeSessionId}
           onExportHtml={templateId ? () => void handleExportTemplate('html') : undefined}
           onExportDocx={templateId ? () => void handleExportTemplate('docx') : undefined}
           exportingFormat={exportingFormat}
