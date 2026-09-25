@@ -35,6 +35,8 @@ export const DashboardLayout: React.FC = () => {
       setActiveMenu('templates');
     } else if (p === '/home/materiais' || p.startsWith('/home/materiais/')) {
       setActiveMenu('materiais');
+    } else if (p === '/home/perfil') {
+      setActiveMenu('settings');
     } else if (p === '/home') {
       setActiveMenu('home');
     }
@@ -44,7 +46,7 @@ export const DashboardLayout: React.FC = () => {
     setActiveMenu(menu);
     const destinations: Record<SidebarMenuId, string> = {
       criar: '/home/editor?type=brainstorm',
-      settings: '/home',
+      settings: '/home/perfil',
       home: '/home',
       turmas: '/home/turmas',
       templates: '/home/templates',
@@ -84,7 +86,7 @@ export const DashboardLayout: React.FC = () => {
         }}
         onOpenSettings={() => {
           setActiveMenu('settings');
-          navigate('/home');
+          navigate('/home/perfil');
         }}
       />
 

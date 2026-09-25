@@ -245,7 +245,7 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
                       key={p.nome}
                       type="button"
                       onClick={() => setParticipanteSelecionado(p.nome)}
-                      className="w-full text-left rounded-xl p-2.5 transition-all cursor-pointer hover:shadow-md border-l-[3px]"
+                      className="w-full text-left rounded-[15px] p-2.5 transition-all cursor-pointer hover:shadow-md border-l-[3px]"
                       style={{
                         backgroundColor: 'transparent',
                         borderLeftColor: grupo.meta.color,
