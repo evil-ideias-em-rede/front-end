@@ -14,10 +14,11 @@ import { THEME_COLORS } from '../../constants/colors';
 import { CriarMaterialModal } from '../criar/CriarMaterialModal';
 import { RenomearModal } from '../criar/RenomearModal';
 import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
-import { HtmlPreview } from '../general/HtmlPreview';
+import { PreviewThumbnail } from '../general/PreviewThumbnail';
 import { CardMenu } from './CardMenu';
 import { useBackendData } from '../../context/BackendDataContext';
 import type { Material } from '../../types';
+import { displayFileTitle } from '../../utils/displayNames';
 
 interface MateriaisTabProps {}
 
@@ -756,13 +757,7 @@ export const MateriaisTab: React.FC<MateriaisTabProps> = () => {
                           'rgba(226, 221, 240, 0.4)',
                       }}
                     >
-                      <HtmlPreview
-                        html={material.htmlContent}
-                        fit
-                        refWidth={material.orientation === 'H' ? 1900 : 900}
-                        refHeight={material.orientation === 'H' ? 900 : 1273}
-                        className="w-full h-full"
-                      />
+                      <PreviewThumbnail id={material.id} />
 
                       <CardMenu
                         onRename={() => setRenameTarget(material)}
@@ -784,7 +779,7 @@ export const MateriaisTab: React.FC<MateriaisTabProps> = () => {
                       "
                     >
                       <h3 className="line-clamp-2 text-base font-bold">
-                        {material.title}
+                        {displayFileTitle(material.title)}
                       </h3>
 
                       {/* Tags */}

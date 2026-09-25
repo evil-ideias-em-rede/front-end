@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   BookMarked,
+  ChevronLeft,
+  ChevronRight,
   Download,
   FileText,
   Plus,
@@ -14,6 +16,7 @@ import { useBackendData } from '../../context/BackendDataContext';
 import type { Material, MaterialType } from '../../types';
 import * as api from '../../api/client';
 import { parseHtmlPages } from '../../utils/htmlLayers';
+import { displayFileTitle } from '../../utils/displayNames';
 import { HtmlPreview } from '../general/HtmlPreview';
 import { CriarMaterialModal } from '../criar/CriarMaterialModal';
 import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
@@ -77,7 +80,7 @@ const MateriaisSidebar: React.FC<MateriaisSidebarProps> = ({
 
               <span className="min-w-0 flex-1">
                 <span className={`block text-sm font-bold truncate ${isActive ? 'text-white' : ''}`}>
-                  {m.title}
+                  {displayFileTitle(m.title)}
                 </span>
                 <span
                   className={`block text-[11px] font-semibold truncate ${
@@ -127,16 +130,51 @@ export const MaterialDetailPage: React.FC = () => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [pdfPreviewHtml, setPdfPreviewHtml] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   const material = useMemo(() => (id ? materiais.find((item) => item.id === id) : undefined), [id, materiais]);
   const turmasAssociadas = useMemo(() => material?.turmaIds ? turmas.filter((turma) => material.turmaIds?.includes(turma.id)) : [], [material, turmas]);
-  const pages = useMemo(() => (material?.fileType === 'html' ? parseHtmlPages(material.htmlContent) : []), [material]);
+  const previewContent = material?.fileType === 'html' ? material.htmlContent : pdfPreviewHtml ?? '';
+  const pages = useMemo(() => previewContent ? parseHtmlPages(previewContent) : [], [previewContent]);
   const safePageIndex = Math.min(pageIndex, Math.max(0, pages.length - 1));
 
   useEffect(() => {
     setPageIndex(0);
     setDownloadError(null);
   }, [material?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPdfPreviewHtml(null);
+    setPreviewError(null);
+
+    if (!material || material.fileType !== 'pdf') {
+      setPreviewLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setPreviewLoading(true);
+    void api.getMaterialPreviewHtml(material.id)
+      .then((html) => {
+        if (!cancelled) setPdfPreviewHtml(html);
+      })
+      .catch((cause) => {
+        if (!cancelled) {
+          setPreviewError(cause instanceof Error ? cause.message : 'Não foi possível carregar a prévia do PDF.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setPreviewLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [material?.id, material?.fileType]);
 
   if (!material) {
     return (
@@ -215,7 +253,7 @@ export const MaterialDetailPage: React.FC = () => {
                   className="text-3xl xl:text-4xl font-black pt-6 tracking-tight"
                   style={{ color: THEME_COLORS.textDark }}
                 >
-                  {material.title}
+                  {displayFileTitle(material.title)}
                 </h1>
 
 
@@ -305,37 +343,51 @@ export const MaterialDetailPage: React.FC = () => {
             )}
 
             {pages.length > 1 && (
-              <div className="flex items-center justify-center gap-3 border-b px-4 py-2" style={{ borderColor: THEME_COLORS.borderLight }}>
+              <div
+                className="flex items-center justify-center border-b px-4 py-3"
+                style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: 'rgba(255,255,255,0.45)' }}
+              >
+                <div
+                  className="inline-flex items-center gap-2 rounded-2xl border bg-white p-1 shadow-sm"
+                  style={{ borderColor: THEME_COLORS.borderLight }}
+                >
                 <button
                   type="button"
                   onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
                   disabled={safePageIndex === 0}
-                  className="rounded-lg border p-1.5 disabled:cursor-not-allowed disabled:opacity-40"
-                  style={{ borderColor: THEME_COLORS.borderLight, color: THEME_COLORS.textDark }}
+                  className="group flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl transition-all hover:bg-violet-50 hover:text-violet-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+                  style={{ color: THEME_COLORS.textDark }}
                   aria-label="Página anterior"
+                  title="Página anterior"
                 >
-                  ‹
+                  <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
                 </button>
-                <span className="text-xs font-bold text-stone-600">Página {safePageIndex + 1} de {pages.length}</span>
+                <span className="min-w-[118px] px-2 text-center text-xs font-bold text-stone-600">
+                  Página <span className="text-violet-700">{safePageIndex + 1}</span>
+                  <span className="mx-1 text-stone-300">/</span>
+                  {pages.length}
+                </span>
                 <button
                   type="button"
                   onClick={() => setPageIndex((current) => Math.min(pages.length - 1, current + 1))}
                   disabled={safePageIndex === pages.length - 1}
-                  className="rounded-lg border p-1.5 disabled:cursor-not-allowed disabled:opacity-40"
-                  style={{ borderColor: THEME_COLORS.borderLight, color: THEME_COLORS.textDark }}
+                  className="group flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl transition-all hover:bg-violet-50 hover:text-violet-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent"
+                  style={{ color: THEME_COLORS.textDark }}
                   aria-label="Próxima página"
+                  title="Próxima página"
                 >
-                  ›
+                  <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </button>
+                </div>
               </div>
             )}
 
             {/* Prévia */}
             <div className="overflow-auto bg-stone-100 p-6 md:p-10 flex justify-center">
-              {material.fileType === 'html' ? (
+              {previewContent ? (
                 <div className="shadow-xl shrink-0" style={{ boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
                   <HtmlPreview
-                    html={material.htmlContent}
+                    html={previewContent}
                     width={isLandscape ? 960 : 794}
                     height={isLandscape ? 540 : 1123}
                     pageIndex={safePageIndex}
@@ -356,8 +408,9 @@ export const MaterialDetailPage: React.FC = () => {
                     Arquivo {material.fileType.toUpperCase()}
                   </h4>
                   <p className="mt-1 text-xs font-semibold text-stone-500 max-w-sm">
-                    A visualização do PDF estará disponível quando o arquivo estiver
-                    vinculado a este material.
+                    {previewLoading
+                      ? 'Carregando a prévia do arquivo...'
+                      : previewError || 'A prévia deste formato não está disponível. Use o botão de download para abrir o arquivo.'}
                   </p>
                 </div>
               )}

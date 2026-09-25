@@ -14,6 +14,7 @@ interface HtmlCanvasProps {
   onCommitDocument: (pageDoc: Document) => void;
   onBack: () => void;
   navigationLocked?: boolean;
+  backDisabled?: boolean;
   title: string;
   onTitleChange: (title: string) => void;
   pageIndex: number;
@@ -22,6 +23,9 @@ interface HtmlCanvasProps {
   orientation: 'V' | 'H';
   isSlides: boolean;
   onExportPdf: () => void;
+  onExportHtml?: () => void;
+  onExportDocx?: () => void;
+  exportingFormat?: 'html' | 'pdf' | 'docx' | null;
   exportingPdf?: boolean;
   /** Quando definido, exibe o botão de lixeira no menu superior. */
   onDelete?: () => void;
@@ -38,6 +42,7 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
   onCommitDocument,
   onBack,
   navigationLocked = false,
+  backDisabled = false,
   title,
   onTitleChange,
   pageIndex,
@@ -46,6 +51,9 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
   orientation,
   isSlides,
   onExportPdf,
+  onExportHtml,
+  onExportDocx,
+  exportingFormat = null,
   onDelete,
   exportingPdf = false,
   serverRevision = 0,
@@ -156,10 +164,10 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
         <button
           type="button"
           onClick={onBack}
-          disabled={navigationLocked}
+          disabled={navigationLocked || backDisabled}
           className="p-2 rounded-lg hover:bg-black/[0.04] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           style={{ color: THEME_COLORS.primary }}
-          title="Voltar às sugestões"
+          title={backDisabled ? 'Voltar indisponível para templates' : 'Voltar às sugestões'}
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
@@ -280,15 +288,17 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
                     type="button"
                     onClick={() => {
                       setExportOpen(false);
+                      if (id === 'html') onExportHtml?.();
                       if (id === 'pdf') onExportPdf();
+                      if (id === 'docx') onExportDocx?.();
                     }}
-                    disabled={id === 'pdf' && exportingPdf}
+                    disabled={id === 'pdf' ? exportingPdf : exportingFormat === id}
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold transition-colors hover:bg-black/[0.04] cursor-pointer"
                     style={{ color: THEME_COLORS.textDark }}
-                    title={id === 'pdf' ? 'Exportar como PDF' : `Exportar como ${label} (em breve)`}
+                    title={id === 'pptx' ? `Exportar como ${label} (em breve)` : `Exportar como ${label}`}
                   >
                     <Icon className="w-4 h-4" style={{ color: THEME_COLORS.primary }} />
-                    {id === 'pdf' && exportingPdf ? 'Gerando PDF...' : label}
+                    {exportingFormat === id || (id === 'pdf' && exportingPdf) ? `Gerando ${label}...` : label}
                   </button>
                 ))}
               </div>

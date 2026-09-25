@@ -10,13 +10,14 @@ import {
   UsersRound,
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
+import { downloadTemplateFile } from '../../api/client';
 import { useBackendData } from '../../context/BackendDataContext';
 import type { Template } from '../../types';
-import { downloadTemplateHtml } from '../../utils/downloadTemplate';
 import { HtmlPreview } from '../general/HtmlPreview';
 import { CriarTemplateModal } from '../criar/CriarTemplateModal';
 import { EditarTemplateModal } from '../criar/EditarTemplateModal';
 import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
+import { displayFileTitle } from '../../utils/displayNames';
 
 const TEMPLATE_COLORS = [
   '#7C3AED',
@@ -83,7 +84,7 @@ const TemplatesSidebar: React.FC<TemplatesSidebarProps> = ({
 
               <span className="min-w-0 flex-1">
                 <span className={`block text-sm font-bold truncate ${isActive ? 'text-white' : ''}`}>
-                  {t.title}
+                  {displayFileTitle(t.title)}
                 </span>
                 <span
                   className={`block text-[11px] font-semibold truncate ${
@@ -132,9 +133,24 @@ export const TemplateDetailPage: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [downloadingFormat, setDownloadingFormat] = useState<'html' | 'pdf' | 'docx' | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const template = useMemo(() => (id ? templates.find((item) => item.id === id) : undefined), [id, templates]);
   const turmasAssociadas = useMemo(() => template?.turmaIds ? turmas.filter((turma) => template.turmaIds?.includes(turma.id)) : [], [template, turmas]);
+
+  const handleDownload = async (format: 'html' | 'pdf' | 'docx') => {
+    if (!template || downloadingFormat) return;
+    setDownloadingFormat(format);
+    setDownloadError(null);
+    try {
+      await downloadTemplateFile(template.id, format);
+    } catch (error) {
+      setDownloadError(error instanceof Error ? error.message : 'Não foi possível baixar o arquivo.');
+    } finally {
+      setDownloadingFormat(null);
+    }
+  };
 
   if (!template) {
     return (
@@ -170,7 +186,7 @@ export const TemplateDetailPage: React.FC = () => {
         onCreate={() => setIsCreateOpen(true)}
       />
 
-      <div className="flex-1 min-w-0 flex flex-col overflow-y-auto">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* ========================================================= */}
         {/* HEADER */}
         {/* ========================================================= */}
@@ -186,7 +202,7 @@ export const TemplateDetailPage: React.FC = () => {
                   className="text-3xl xl:text-4xl font-black pt-6 tracking-tight"
                   style={{ color: THEME_COLORS.textDark }}
                 >
-                  {template.title}
+                  {displayFileTitle(template.title)}
                 </h1>
 
                 <button
@@ -270,9 +286,10 @@ export const TemplateDetailPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => downloadTemplateHtml(template)}
+                onClick={() => void handleDownload('html')}
                 title="Baixar como HTML"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all hover:scale-105 cursor-pointer"
+                disabled={Boolean(downloadingFormat)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                 style={{
                   backgroundColor: THEME_COLORS.bgLight,
                   borderColor: THEME_COLORS.borderLight,
@@ -284,8 +301,10 @@ export const TemplateDetailPage: React.FC = () => {
 
               <button
                 type="button"
+                onClick={() => void handleDownload('pdf')}
                 title="Baixar como PDF"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all hover:scale-105 cursor-pointer"
+                disabled={Boolean(downloadingFormat)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                 style={{
                   backgroundColor: THEME_COLORS.bgLight,
                   borderColor: THEME_COLORS.borderLight,
@@ -297,8 +316,10 @@ export const TemplateDetailPage: React.FC = () => {
 
               <button
                 type="button"
+                onClick={() => void handleDownload('docx')}
                 title="Baixar como DOCX"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all hover:scale-105 cursor-pointer"
+                disabled={Boolean(downloadingFormat)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all hover:scale-105 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
                 style={{
                   backgroundColor: THEME_COLORS.bgLight,
                   borderColor: THEME_COLORS.borderLight,
@@ -308,12 +329,20 @@ export const TemplateDetailPage: React.FC = () => {
                 DOCX
               </button>
 
+              {downloadError && (
+                <span className="basis-full text-xs font-semibold text-red-600" role="alert">
+                  {downloadError}
+                </span>
+              )}
+
               <span className="flex-1" />
 
               <button
                 type="button"
                 onClick={() =>
-                  navigate(`/home/editor/material?title=${encodeURIComponent(template.title)}`)
+                  navigate(
+                    `/home/editor/material?templateId=${encodeURIComponent(template.id)}&title=${encodeURIComponent(template.title)}`
+                  )
                 }
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider text-white transition-all hover:scale-105 cursor-pointer"
                 style={{ backgroundColor: THEME_COLORS.secondary }}
@@ -324,12 +353,13 @@ export const TemplateDetailPage: React.FC = () => {
             </div>
 
             {/* Prévia do HTML */}
-            <div className="overflow-auto bg-stone-100 p-6 md:p-10 flex justify-center">
+            <div className="overflow-hidden bg-stone-100 p-6 md:p-10 flex justify-center">
               <div className="shadow-xl shrink-0" style={{ boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
                 <HtmlPreview
                   html={template.htmlContent}
                   width={794}
-                  height={1123}
+                  height="min(760px, calc(100vh - 20rem))"
+                  interactive
                 />
               </div>
             </div>

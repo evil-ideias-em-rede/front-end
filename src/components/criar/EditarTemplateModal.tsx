@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, LayoutTemplate } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import type { Turma, Template } from '../../types';
+import { displayFileTitle, keepOriginalFileExtension } from '../../utils/displayNames';
 import { BaseModal } from './BaseModal';
 
 interface EditarTemplateModalProps {
@@ -20,7 +21,7 @@ export const EditarTemplateModal: React.FC<EditarTemplateModalProps> = ({
   onClose,
   onUpdated,
 }) => {
-  const [name, setName] = useState(template.title);
+  const [name, setName] = useState(displayFileTitle(template.title));
   const [selectedIds, setSelectedIds] = useState<string[]>(
     template.turmaIds ?? []
   );
@@ -51,7 +52,7 @@ export const EditarTemplateModal: React.FC<EditarTemplateModalProps> = ({
     timerRef.current = setTimeout(() => {
       onUpdated({
         ...template,
-        title: name.trim(),
+        title: keepOriginalFileExtension(name, template.title),
         turmaIds: selectedIds,
         qtd: selectedIds.length,
       });

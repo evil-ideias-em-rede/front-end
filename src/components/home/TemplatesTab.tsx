@@ -18,6 +18,7 @@ import { HtmlPreview } from '../general/HtmlPreview';
 import { CardMenu } from './CardMenu';
 import { useBackendData } from '../../context/BackendDataContext';
 import type { Template } from '../../types';
+import { displayFileTitle } from '../../utils/displayNames';
 
 type SortOption = 'alphabetical' | 'quantity' | 'recent';
 
@@ -688,7 +689,7 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = () => {
                           font-bold
                         "
                       >
-                        {tmpl.title}
+                        {displayFileTitle(tmpl.title)}
                       </h3>
 
                       {/* Turmas — sempre no bottom */}
@@ -749,14 +750,14 @@ export const TemplatesTab: React.FC<TemplatesTabProps> = () => {
           title="Renomear Template"
           label="Nome do template"
           icon={<LayoutTemplate className="w-4 h-4" />}
-          initialName={renameTarget.title}
+          initialName={displayFileTitle(renameTarget.title)}
           placeholder="Ex: Plano de Aula Padrão - Escola XYZ"
           confirmLabel="Renomear"
           onClose={() => setRenameTarget(null)}
           onSave={(name) => {
             void updateTemplate({
               ...renameTarget,
-              title: name,
+              title: displayFileTitle(name).trim(),
             }).catch((error) => console.error(error));
           }}
         />

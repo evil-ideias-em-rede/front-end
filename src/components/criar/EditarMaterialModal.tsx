@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { BookMarked, CheckCircle2 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import type { Material } from '../../types';
+import { displayFileTitle, keepOriginalFileExtension } from '../../utils/displayNames';
 import { BaseModal } from './BaseModal';
 
 interface EditarMaterialModalProps {
@@ -18,7 +19,7 @@ export const EditarMaterialModal: React.FC<EditarMaterialModalProps> = ({
   onClose,
   onUpdated,
 }) => {
-  const [name, setName] = useState(material.title);
+  const [name, setName] = useState(displayFileTitle(material.title));
   const [saved, setSaved] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,7 +39,7 @@ export const EditarMaterialModal: React.FC<EditarMaterialModalProps> = ({
     timerRef.current = setTimeout(() => {
       onUpdated({
         ...material,
-        title: name.trim(),
+        title: keepOriginalFileExtension(name, material.title),
       });
       onClose();
     }, 850);

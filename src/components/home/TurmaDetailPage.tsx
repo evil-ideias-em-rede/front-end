@@ -14,9 +14,11 @@ import { THEME_COLORS } from '../../constants/colors';
 import { useBackendData } from '../../context/BackendDataContext';
 import type { Turma } from '../../types';
 import { HtmlPreview } from '../general/HtmlPreview';
+import { PreviewThumbnail } from '../general/PreviewThumbnail';
 import { EditarTurmaModal } from '../criar/EditarTurmaModal';
 import { CriarTurmaModal } from '../criar/CriarTurmaModal';
 import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
+import { displayFileTitle } from '../../utils/displayNames';
 
 type ContentFilter = 'all' | 'plano' | 'atividade' | 'material';
 
@@ -360,19 +362,23 @@ export const TurmaDetailPage: React.FC = () => {
                     className="h-36 relative overflow-hidden shrink-0"
                     style={{ backgroundColor: 'rgba(226, 221, 240, 0.4)' }}
                   >
-                    <HtmlPreview
-                      html={item.htmlContent}
-                      fit
-                      refWidth={item.orientation === 'H' ? 1900 : 900}
-                      refHeight={item.orientation === 'H' ? 900 : 1273}
-                      className="w-full h-full"
-                    />
+                    {item.kind === 'material' ? (
+                      <PreviewThumbnail id={item.key} />
+                    ) : (
+                      <HtmlPreview
+                        html={item.htmlContent}
+                        fit
+                        refWidth={item.orientation === 'H' ? 1900 : 900}
+                        refHeight={item.orientation === 'H' ? 900 : 1273}
+                        className="w-full h-full"
+                      />
+                    )}
                   </div>
 
                   {/* Content */}
                   <div className="p-6 flex flex-col flex-1 space-y-4">
                     <h3 className="line-clamp-2 text-base font-bold">
-                      {item.title}
+                      {displayFileTitle(item.title)}
                     </h3>
                   </div>
                 </div>

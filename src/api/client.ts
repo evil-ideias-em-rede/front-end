@@ -192,13 +192,61 @@ export async function deleteTemplate(id: string): Promise<void> {
   await request(`/api/templates/${id}`, { method: 'DELETE' });
 }
 
+async function fetchThumbnail(path: string): Promise<Blob> {
+  const token = getAccessToken();
+  const headers = new Headers();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  const response = await fetch(`${API_BASE}${path}`, { headers });
+  if (!response.ok) throw new Error(`Não foi possível carregar a prévia (${response.status}).`);
+  return response.blob();
+}
+
+export async function fetchMaterialThumbnail(id: string): Promise<Blob> {
+  return fetchThumbnail(`/api/materiais/${encodeURIComponent(id)}/thumbnail`);
+}
+
+export type TemplateDownloadFormat = 'html' | 'pdf' | 'docx';
+
+export async function downloadTemplateFile(id: string, format: TemplateDownloadFormat): Promise<void> {
+  const token = getAccessToken();
+  const headers = new Headers();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  const response = await fetch(
+    `${API_BASE}/api/templates/${encodeURIComponent(id)}/download?format=${format}`,
+    { headers },
+  );
+  if (!response.ok) {
+    const body = await response.text();
+    let detail = body || response.statusText;
+    try {
+      const parsed = JSON.parse(body) as { detail?: string };
+      detail = parsed.detail || detail;
+    } catch {
+      // Mantém a mensagem textual retornada pelo servidor.
+    }
+    throw new Error(detail || `Erro ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('content-disposition') || '';
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `template.${format}`;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export async function listMateriais(): Promise<Material[]> {
   return request<Material[]>('/api/materiais');
 }
 
 export type MaterialDownloadFormat = 'html' | 'pdf' | 'docx';
 
-export async function downloadMaterialFile(id: string, format: MaterialDownloadFormat): Promise<void> {
+async function fetchMaterialFile(id: string, format: MaterialDownloadFormat): Promise<Response> {
   const token = getAccessToken();
   const headers = new Headers();
   if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -214,6 +262,30 @@ export async function downloadMaterialFile(id: string, format: MaterialDownloadF
     }
     throw new Error(detail || `Erro ${response.status}`);
   }
+  return response;
+}
+
+export async function getMaterialPreviewHtml(id: string): Promise<string> {
+  const token = getAccessToken();
+  const headers = new Headers();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  const response = await fetch(`${API_BASE}/api/materiais/${encodeURIComponent(id)}/preview`, { headers });
+  if (!response.ok) {
+    const body = await response.text();
+    let detail = body || response.statusText;
+    try {
+      const parsed = JSON.parse(body) as { detail?: string };
+      detail = parsed.detail || detail;
+    } catch {
+      // Mantém a mensagem textual retornada pelo servidor.
+    }
+    throw new Error(detail || `Erro ${response.status}`);
+  }
+  return response.text();
+}
+
+export async function downloadMaterialFile(id: string, format: MaterialDownloadFormat): Promise<void> {
+  const response = await fetchMaterialFile(id, format);
   const blob = await response.blob();
   const disposition = response.headers.get('content-disposition') || '';
   const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `material.${format}`;

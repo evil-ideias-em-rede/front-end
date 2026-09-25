@@ -11,6 +11,7 @@ import type { ChatMessage } from './ChatPanel';
 import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
 import { useBackendData } from '../../context/BackendDataContext';
 import * as api from '../../api/client';
+import { displayFileTitle } from '../../utils/displayNames';
 
 function backendAgentFromType(type?: string): string {
   if (type === 'debate') return 'debate';
@@ -26,8 +27,10 @@ export const MaterialEditorPage: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   const hasTitle = searchParams.has('title') && searchParams.get('title')?.trim() !== '';
-  const initialTitle = searchParams.get('title') ?? 'Novo material';
+  const rawInitialTitle = searchParams.get('title') ?? 'Novo material';
+  const initialTitle = displayFileTitle(rawInitialTitle);
   const materialId = searchParams.get('materialId') ?? undefined;
+  const templateId = searchParams.get('templateId') ?? undefined;
   const materialType = searchParams.get('type') ?? undefined;
   const serie = searchParams.get('serie') ?? undefined;
   const audienciaId = searchParams.get('audienciaId') ?? undefined;
@@ -37,15 +40,26 @@ export const MaterialEditorPage: React.FC = () => {
   // Título próprio do material, editável pelo professor no toolbar.
   const [documentTitle, setDocumentTitle] = useState(initialTitle);
 
-  const { materiais, deleteMaterial } = useBackendData();
+  const { templates, materiais, deleteMaterial } = useBackendData();
+
+  const savedTemplate = useMemo(
+    () => templateId ? templates.find((template) => template.id === templateId) : undefined,
+    [templates, templateId],
+  );
 
   // Material salvo correspondente ao título de abertura, se existir.
   const savedMaterial = useMemo(
     () => materialId
       ? materiais.find((material) => material.id === materialId)
-      : materiais.find((material) => material.title === initialTitle),
-    [materiais, materialId, initialTitle]
+      : materiais.find((material) => material.title === rawInitialTitle
+        || displayFileTitle(material.title) === initialTitle),
+    [materiais, materialId, rawInitialTitle, initialTitle]
   );
+
+  const savedContent = templateId ? savedTemplate : savedMaterial;
+  const editorIntro = templateId
+    ? `Template "${initialTitle}" carregado. Selecione uma camada para editar ou faça ajustes no documento.`
+    : `Material gerado a partir da audiência "${documentTitle}"${serie ? ` para ${serie}` : ''}${audienciaId ? ` (fonte ${audienciaId})` : ''}. Selecione uma camada para editar ou peça mudanças aqui.`;
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -57,12 +71,12 @@ export const MaterialEditorPage: React.FC = () => {
   const [html, setHtml] = useState<string>(() => (
     sessionId
       ? ''
-      : parseHtmlLayers(savedMaterial?.htmlContent || EDITOR_MOCK_HTML).markedHtml
+      : parseHtmlLayers(savedContent?.htmlContent || EDITOR_MOCK_HTML).markedHtml
   ));
-  const loadedMaterialIdRef = useRef<string | null>(null);
+  const loadedContentIdRef = useRef<string | null>(null);
   const [backendError, setBackendError] = useState<string | null>(null);
   const [llmBusy, setLlmBusy] = useState(Boolean(sessionId));
-  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<'html' | 'pdf' | 'docx' | null>(null);
   const [hasPendingManualEdits, setHasPendingManualEdits] = useState(false);
   const manualEditVersionRef = useRef(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -72,15 +86,17 @@ export const MaterialEditorPage: React.FC = () => {
     {
       id: 'ed-1',
       role: 'assistant',
-      text: `Material gerado a partir da audiência "${documentTitle}"${serie ? ` para ${serie}` : ''}${audienciaId ? ` (fonte ${audienciaId})` : ''}. Selecione uma camada para editar ou peça mudanças aqui.`,
+      text: editorIntro,
     },
   ]);
 
   useEffect(() => {
-    if (sessionId || !savedMaterial?.htmlContent || loadedMaterialIdRef.current === savedMaterial.id) return;
-    setHtml(parseHtmlLayers(savedMaterial.htmlContent).markedHtml);
-    loadedMaterialIdRef.current = savedMaterial.id;
-  }, [sessionId, savedMaterial]);
+    if (sessionId || !savedContent?.htmlContent) return;
+    const contentId = `${templateId ? 'template' : 'material'}:${savedContent.id}`;
+    if (loadedContentIdRef.current === contentId) return;
+    setHtml(parseHtmlLayers(savedContent.htmlContent).markedHtml);
+    loadedContentIdRef.current = contentId;
+  }, [sessionId, savedContent, templateId]);
 
   useEffect(() => {
     if (sessionId) {
@@ -117,7 +133,7 @@ export const MaterialEditorPage: React.FC = () => {
             const initialMessage = current.find((message) => message.id === 'ed-1') ?? {
               id: 'ed-1',
               role: 'assistant' as const,
-              text: `Material gerado a partir da audiência "${documentTitle}"${serie ? ` para ${serie}` : ''}${audienciaId ? ` (fonte ${audienciaId})` : ''}. Selecione uma camada para editar ou peça mudanças aqui.`,
+              text: editorIntro,
             };
             return [initialMessage, ...persistedMessages];
           });
@@ -279,7 +295,26 @@ export const MaterialEditorPage: React.FC = () => {
     }
   };
 
+  const handleExportTemplate = async (format: 'html' | 'pdf' | 'docx') => {
+    if (!templateId) return;
+
+    try {
+      setBackendError(null);
+      setExportingFormat(format);
+      await api.downloadTemplateFile(templateId, format);
+    } catch (cause) {
+      setBackendError(cause instanceof Error ? cause.message : `Não foi possível exportar como ${format.toUpperCase()}.`);
+    } finally {
+      setExportingFormat(null);
+    }
+  };
+
   const handleExportPdf = async () => {
+    if (templateId) {
+      await handleExportTemplate('pdf');
+      return;
+    }
+
     if (!sessionId) {
       setBackendError('Salve o material em uma sessão antes de exportar o PDF.');
       return;
@@ -287,12 +322,12 @@ export const MaterialEditorPage: React.FC = () => {
 
     try {
       setBackendError(null);
-      setExportingPdf(true);
+      setExportingFormat('pdf');
       await api.downloadWorkflowPdf(sessionId, html, orientation);
     } catch (cause) {
       setBackendError(cause instanceof Error ? cause.message : 'Não foi possível exportar o PDF.');
     } finally {
-      setExportingPdf(false);
+      setExportingFormat(null);
     }
   };
 
@@ -352,6 +387,10 @@ export const MaterialEditorPage: React.FC = () => {
           onCommitDocument={handleCommitPage}
           onBack={handleBack}
           navigationLocked={llmBusy}
+          backDisabled={!sessionId}
+          onExportHtml={templateId ? () => void handleExportTemplate('html') : undefined}
+          onExportDocx={templateId ? () => void handleExportTemplate('docx') : undefined}
+          exportingFormat={exportingFormat}
           title={documentTitle}
           onTitleChange={(nextTitle) => {
             setDocumentTitle(nextTitle);
@@ -363,10 +402,10 @@ export const MaterialEditorPage: React.FC = () => {
           orientation={orientation}
           isSlides={materialType === 'slides'}
           onExportPdf={() => void handleExportPdf()}
-          exportingPdf={exportingPdf}
+          exportingPdf={exportingFormat === 'pdf'}
           serverRevision={serverRevision}
           onDelete={
-            savedMaterial
+            savedMaterial && !templateId
               ? () => {
                   setDeleteError(null);
                   setIsDeleteOpen(true);

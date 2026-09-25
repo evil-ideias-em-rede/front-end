@@ -3,16 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { 
   MessageSquareQuote, LayoutTemplate, BookOpen,
-  FileText, Clock, BookMarked,
+  FileText, Clock,
   FolderOpen, Presentation, Zap, MoreVertical, Pencil, Trash2, X
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
-import { HtmlPreview } from '../general/HtmlPreview';
-import { RenomearModal } from '../criar/RenomearModal';
 import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
-import { CardMenu } from './CardMenu';
-import { useBackendData } from '../../context/BackendDataContext';
-import type { Material } from '../../types';
+import { WorkflowPreviewThumbnail } from '../general/WorkflowPreviewThumbnail';
 import * as api from '../../api/client';
 
 interface HomePageProps {
@@ -21,7 +17,6 @@ interface HomePageProps {
 
 export const HomePage: React.FC<HomePageProps> = () => {
   const navigate = useNavigate();
-  const { materiais, updateMaterial, deleteMaterial } = useBackendData();
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [workflowSessions, setWorkflowSessions] = useState<api.WorkflowSessionSummary[]>([]);
   const [workflowLoading, setWorkflowLoading] = useState(true);
@@ -36,15 +31,6 @@ export const HomePage: React.FC<HomePageProps> = () => {
   const [workflowDeleteTarget, setWorkflowDeleteTarget] = useState<api.WorkflowSessionSummary | null>(null);
   const [isDeletingWorkflow, setIsDeletingWorkflow] = useState(false);
   const [workflowDeleteError, setWorkflowDeleteError] = useState<string | null>(null);
-
-  const [renameTarget, setRenameTarget] =
-    useState<Material | null>(null);
-
-  const [deleteTarget, setDeleteTarget] =
-    useState<Material | null>(null);
-
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -98,10 +84,17 @@ export const HomePage: React.FC<HomePageProps> = () => {
     const date = typeof value === 'number' ? new Date(value) : new Date(value);
     if (Number.isNaN(date.getTime())) return null;
 
-    return `Editado em ${date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-    })}`;
+    return {
+      date: date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+      }),
+      time: date.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    };
   };
 
   // Quick Inspiration Prompts
@@ -152,25 +145,16 @@ export const HomePage: React.FC<HomePageProps> = () => {
     },
   ];
 
-  // "Continue de onde parou": filtro por categoria + sempre os mais recentes primeiro.
-  const filteredMateriais = materiais
-    .filter((m) => {
-      if (filterCategory === 'all') return true;
-      return m.category === filterCategory;
-    })
-    .sort((a, b) => (b.lastModifiedAt ?? 0) - (a.lastModifiedAt ?? 0));
-
   const visibleWorkflowSessions = workflowSessions.filter((session) => (
     !deletedSessionIds.has(session.id) &&
     (filterCategory === 'all'
       || workflowCategories[session.selected_agent ?? 'brainstorm'] === filterCategory)
   ));
-  const continuationCount = workflowSessions.length + materiais.length;
+  const continuationCount = workflowSessions.length;
   const categoryCount = (category: string) => (
     workflowSessions.filter((session) => (
       workflowCategories[session.selected_agent ?? 'brainstorm'] === category
     )).length
-    + materiais.filter((material) => material.category === category).length
   );
 
   const openWorkflowSession = async (session: api.WorkflowSessionSummary) => {
@@ -244,6 +228,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
     setTitleOverrides(next);
     localStorage.setItem('contraponto.workflow_titles', JSON.stringify(next));
     setOptionsSessionId(null);
+    setEditingSessionId(null);
   };
 
   return (
@@ -559,7 +544,11 @@ export const HomePage: React.FC<HomePageProps> = () => {
                     </div>
                   )}
                   <div className="h-40 relative overflow-hidden shrink-0 flex items-center justify-center" style={{ backgroundColor: 'rgba(226, 221, 240, 0.4)' }}>
-                    <MessageSquareQuote className="w-14 h-14" style={{ color: THEME_COLORS.primary }} />
+                    {agent === 'lesson_plan' || agent === 'debate' || agent === 'political_leteracy' || agent === 'generic' || agent === 'writing_workshop' || agent === 'slides' ? (
+                      <WorkflowPreviewThumbnail sessionId={session.id} />
+                    ) : (
+                      <MessageSquareQuote className="w-14 h-14" style={{ color: THEME_COLORS.primary }} />
+                    )}
                   </div>
                   <div className="p-6 flex flex-col flex-1 space-y-3">
                     <h3 className="line-clamp-1 text-base font-bold leading-snug group-hover:text-[#7C3AED] transition-colors" style={{ color: THEME_COLORS.textDark }}>
@@ -570,10 +559,18 @@ export const HomePage: React.FC<HomePageProps> = () => {
                     </p>
                   </div>
                   <div className="p-4 px-6 border-t flex items-center text-xs" style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: 'rgba(0, 0, 0, 0.015)' }}>
-                    <span className="text-[11px] font-semibold text-stone-500 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {formatEditedDate(session.last_message_at ?? session.created_at)}
-                    </span>
+                    {(() => {
+                      const editedAt = formatEditedDate(session.last_message_at ?? session.created_at);
+                      return editedAt ? (
+                        <span className="w-full text-[11px] font-semibold text-stone-500 flex items-center justify-between gap-4">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            Editado em {editedAt.date}
+                          </span>
+                          <span>{editedAt.time}</span>
+                        </span>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
               );
@@ -581,77 +578,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
           </div>
         )}
 
-        {/* Materiais gerados salvos no backend */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 [grid-auto-flow:dense]">
-          {filteredMateriais.map((material, idx) => {
-            return (
-              <div
-                key={material.id}
-                onClick={() =>
-                  navigate(
-                    `/home/editor/material?materialId=${encodeURIComponent(material.id)}&title=${encodeURIComponent(material.title)}`
-                  )
-                }
-                className={`
-                  template-card-in
-                  rounded-3xl shadow-sm border overflow-hidden flex flex-col
-                  transition-all hover:shadow-md hover:-translate-y-1 cursor-pointer group
-                  ${material.orientation === 'H' ? 'col-span-2' : 'col-span-1'}
-                `}
-                style={{ 
-                  backgroundColor: '#ffffff40', 
-                  borderColor: THEME_COLORS.borderLight,
-                  animationDelay: `${350 + idx * 90}ms`,
-                }}
-              >
-                {/* Thumbnail */}
-                <div 
-                  className="h-40 relative overflow-hidden shrink-0"
-                  style={{ backgroundColor: 'rgba(226, 221, 240, 0.4)' }}
-                >
-                  <HtmlPreview
-                    html={material.htmlContent}
-                    fit
-                    refWidth={material.orientation === 'H' ? 1900 : 900}
-                    refHeight={material.orientation === 'H' ? 900 : 1273}
-                    className="w-full h-full"
-                  />
-
-                  <CardMenu
-                    onRename={() => setRenameTarget(material)}
-                    onDelete={() => {
-                      setDeleteError(null);
-                      setDeleteTarget(material);
-                    }}
-                  />
-                </div>
-
-                {/* Content */}
-                <div className="p-6 flex flex-col flex-1 space-y-4">
-                  <h3 className="line-clamp-2 text-base font-bold leading-snug group-hover:text-[#7C3AED] transition-colors" style={{ color: THEME_COLORS.textDark }}>
-                    {material.title}
-                  </h3>
-                </div>
-
-                {/* Footer */}
-                <div 
-                  className="p-4 px-6 border-t flex items-center text-xs"
-                  style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: 'rgba(0, 0, 0, 0.015)' }}
-                >
-                  <span className="text-[11px] font-semibold text-stone-500 flex items-center gap-1">
-                    {material.lastModifiedAt !== undefined && (
-                      <Clock className="w-3 h-3" />
-                    )}
-                    {formatEditedDate(material.lastModifiedAt)}
-                  </span>
-                </div>
-
-              </div>
-            );
-          })}
-        </div>
-
-        {!workflowLoading && visibleWorkflowSessions.length === 0 && filteredMateriais.length === 0 && (
+        {!workflowLoading && visibleWorkflowSessions.length === 0 && (
           <div className="template-card-in pt-12 mb-8 text-center rounded-3xl space-y-3">
             <FolderOpen className="w-10 h-10 mx-auto text-stone-400" />
             <h4 className="font-bold text-sm text-stone-700">Nenhum material encontrado nesta categoria</h4>
@@ -671,48 +598,6 @@ export const HomePage: React.FC<HomePageProps> = () => {
           loading={isDeletingWorkflow}
           error={workflowDeleteError}
           onConfirm={() => { void confirmDeleteWorkflow(); }}
-        />
-      )}
-
-      {renameTarget && (
-        <RenomearModal
-          title="Renomear Material"
-          label="Nome do material"
-          icon={<BookMarked className="w-4 h-4" />}
-          initialName={renameTarget.title}
-          placeholder="Ex: Livro de Português Ensino Médio Vol. 1"
-          confirmLabel="Renomear"
-          onClose={() => setRenameTarget(null)}
-          onSave={(name) => {
-            void updateMaterial({
-              ...renameTarget,
-              title: name,
-            }).catch((error) => console.error(error));
-          }}
-        />
-      )}
-
-      {deleteTarget && (
-        <ConfirmDeleteModal
-          title="Excluir material?"
-          message={`Tem certeza que deseja excluir "${deleteTarget.title}"? Esta ação não pode ser desfeita.`}
-          onCancel={() => setDeleteTarget(null)}
-          loading={isDeleting}
-          error={deleteError}
-          onConfirm={() => {
-            if (isDeleting) return;
-            setIsDeleting(true);
-            setDeleteError(null);
-            void deleteMaterial(deleteTarget.id)
-              .then(() => {
-                setIsDeleting(false);
-                setDeleteTarget(null);
-              })
-              .catch((error) => {
-                setDeleteError(error instanceof Error ? error.message : 'Não foi possível excluir o material.');
-                setIsDeleting(false);
-              });
-          }}
         />
       )}
 

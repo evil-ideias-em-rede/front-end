@@ -9,9 +9,10 @@ interface HtmlPreviewProps {
   fit?: boolean;
   refWidth?: number;
   refHeight?: number;
-  width?: number;
-  height?: number;
+  width?: number | string;
+  height?: number | string;
   pageIndex?: number;
+  interactive?: boolean;
 }
 
 const extractDocumentPart = (html: string, tag: 'head' | 'body'): string => {
@@ -25,7 +26,11 @@ const wrapContent = (html: string, scrollable: boolean): string => {
     ? extractDocumentPart(html, 'head').replace(/<script\b[\s\S]*?<\/script>/gi, '')
     : '';
   const body = hasDocument ? extractDocumentPart(html, 'body') : html;
-  return `<!DOCTYPE html><html><head><meta charset="utf-8">${head}<style>*{box-sizing:border-box}body{margin:0;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;line-height:1.5;overflow:${scrollable ? 'hidden' : 'auto'}}</style></head><body>${body}</body></html>`;
+  const overflowStyles = scrollable
+    ? 'html,body{overflow:hidden!important}'
+    : 'html{height:auto!important;min-height:100%;overflow-x:hidden!important;overflow-y:auto!important}body{height:auto!important;min-height:100%;overflow-x:hidden!important;overflow-y:auto!important}.documento{overflow:visible!important}';
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8">${head}<style>*{box-sizing:border-box}body{margin:0;font-family:'Segoe UI',Arial,sans-serif;font-size:11px;line-height:1.5}${overflowStyles}</style></head><body>${body}</body></html>`;
 };
 
 export const HtmlPreview: React.FC<HtmlPreviewProps> = ({
@@ -37,6 +42,7 @@ export const HtmlPreview: React.FC<HtmlPreviewProps> = ({
   width,
   height,
   pageIndex,
+  interactive = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [, setScale] = useState<number | null>(fit ? 1 : null);
@@ -81,9 +87,12 @@ export const HtmlPreview: React.FC<HtmlPreviewProps> = ({
         srcDoc={wrapContent(pageContent, false)}
         className={className}
         sandbox=""
+        scrolling="yes"
         style={{
           border: 'none',
-          pointerEvents: 'none',
+          pointerEvents: interactive ? 'auto' : 'none',
+          display: 'block',
+          overflow: 'auto',
           width: width ?? '100%',
           height: height ?? 'auto',
         }}
