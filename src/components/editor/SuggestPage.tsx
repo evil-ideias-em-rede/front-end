@@ -97,9 +97,6 @@ const INITIAL_BRAINSTORM_MESSAGE: ChatMessage = {
   text: 'Me conte qual tema você quer trabalhar — e, se já souber, a série e o tipo de material (plano de aula, roteiro de debate, oficina de redação). Vou buscar as audiências que mais combinam.',
 };
 
-// Temporário: qualquer sugestão clicada abre o mesmo debate anotado no back-end.
-const FIXED_AUDIENCIA_ID = 'mimo-1';
-
 function truncate(text: string, max = 180): string {
   const normalized = text.trim();
   return normalized.length <= max ? normalized : `${normalized.slice(0, max - 1)}…`;
@@ -175,6 +172,19 @@ function normalizeAudiencia(raw: any): AudienciaDetalhe {
   };
 }
 
+function detalheInicialDaSugestao(sugestao: AudienciaResumo): AudienciaDetalhe {
+  return {
+    id: sugestao.id,
+    titulo: sugestao.titulo,
+    resumoCurto: sugestao.resumoCurto,
+    resumo: sugestao.resumoCurto,
+    textoIntegral: [],
+    participantes: [],
+    falas: [],
+    propostas: [],
+  };
+}
+
 export const SuggestPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -190,6 +200,8 @@ export const SuggestPage: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detalhe, setDetalhe] = useState<AudienciaDetalhe | null>(null);
   const [loadingDetalhe, setLoadingDetalhe] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [audienceSelectionBusy, setAudienceSelectionBusy] = useState(false);
   const [advancing, setAdvancing] = useState(false);
   const [serie, setSerie] = useState<string | null>(serieParam);
   const [tipoMaterial, setTipoMaterial] = useState<string | null>(() => tipoInicialFromUrl(urlType));
@@ -198,6 +210,7 @@ export const SuggestPage: React.FC = () => {
   const [sessionId, setSessionId] = useState<string | null>(sessionIdParam);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const creatingSession = useRef<Promise<string> | null>(null);
+  const detalheRequestRef = useRef(0);
 
   const ensureSession = async (): Promise<string> => {
     if (sessionId) return sessionId;
@@ -214,11 +227,23 @@ export const SuggestPage: React.FC = () => {
 
   const loadPlanning = async (currentSessionId: string) => {
     const planning = await api.getWorkflowPlanning<PlanningItem>(currentSessionId);
-    setSugestoes(planning.map((item) => ({
+    const nextSugestoes = planning.map((item) => ({
       id: String(item.id),
       titulo: item.titulo,
       resumoCurto: item.resumo ?? '',
-    })));
+    }));
+
+    setSugestoes((current) => {
+      const mudou = current.length !== nextSugestoes.length
+        || current.some((item, index) => {
+          const next = nextSugestoes[index];
+          return !next
+            || item.id !== next.id
+            || item.titulo !== next.titulo
+            || item.resumoCurto !== next.resumoCurto;
+        });
+      return mudou ? nextSugestoes : current;
+    });
   };
 
   useEffect(() => {
@@ -250,11 +275,17 @@ export const SuggestPage: React.FC = () => {
 
     const restoreSession = async () => {
       try {
-        const [session, planning, audiencia] = await Promise.all([
+        const [session, planning] = await Promise.all([
           api.getWorkflowSession(sessionIdParam),
           api.getWorkflowPlanning<PlanningItem>(sessionIdParam),
-          api.getAudiencia<any>(FIXED_AUDIENCIA_ID),
         ]);
+
+        const audienciaId = audienciaIdParam
+          ?? (session.selected_audience_id ? String(session.selected_audience_id) : null)
+          ?? (planning.length === 1 ? String(planning[0].id) : null);
+        const audiencia = audienciaId
+          ? await api.getAudiencia<any>(audienciaId)
+          : null;
 
         if (!active) return;
 
@@ -292,43 +323,68 @@ export const SuggestPage: React.FC = () => {
     return () => { active = false; };
   }, [audienciaIdParam, sessionIdParam, serieParam]);
 
-  const handleSelect = async (id: string) => {
+  const handleSelect = async (id: string, notifyAgent = false) => {
+    if (notifyAgent) {
+      if (audienceSelectionBusy || id === selectedId) return;
+      setAudienceSelectionBusy(true);
+    }
+    const detalheRequestId = ++detalheRequestRef.current;
     setSelectedId(id);
     setError(null);
+    const sugestao = sugestoes.find((item) => item.id === id);
+    if (sugestao) {
+      // O título e o resumo já estão no card. Mostre-os imediatamente no
+      // centro enquanto os participantes e as falas são carregados.
+      setDetalhe(detalheInicialDaSugestao(sugestao));
+    }
     setLoadingDetalhe(true);
     try {
-      // Mantém o item clicado selecionado visualmente, mas usa sempre a fonte fixa.
       if (sessionId) {
-        await api.selectWorkflowPlanningItem(sessionId, id).catch(() => undefined);
+        // Persistir a audiência escolhida no sandbox não é uma mensagem para
+        // o agente: é apenas o contexto da seleção feita no card.
+        await api.selectWorkflowPlanningItem(sessionId, id);
       }
-      const audiencia = await api.getAudiencia<any>(FIXED_AUDIENCIA_ID);
+      const audiencia = await api.getAudiencia<any>(id);
+      if (detalheRequestId !== detalheRequestRef.current) return;
       const normalized = normalizeAudiencia(audiencia);
       setDetalhe(normalized);
 
-      // O clique indica interesse no tema, mas ainda não confirma a fonte.
-      // Enviamos esse contexto ao agente como mensagem interna para que ele
-      // possa levar a audiência em conta nas próximas respostas sem duplicar
-      // a mensagem no chat visível.
-      if (sessionId) {
-        const context = [
-          '[Contexto de navegação — audiência observada pelo professor]',
-          `ID: ${normalized.id}`,
-          `Título: ${normalized.titulo}`,
-          `Resumo: ${normalized.resumo}`,
-          'O professor apenas clicou para consultar este tema; a audiência ainda não foi confirmada como fonte.',
-        ].join('\n');
-        void api.sendWorkflowMessage(sessionId, context, 'brainstorm', true).catch((cause) => {
-          setSessionError(cause instanceof Error ? cause.message : 'Não foi possível informar o agente sobre o tema clicado.');
-        });
+      if (notifyAgent && sessionId) {
+        const selectionMessage = `Escolhi consultar a audiência de ID ${normalized.id}, com o tema "${normalized.titulo}". Ainda não confirmei essa audiência como fonte; estou analisando o resumo e os participantes.`;
+        const mensagemUsuario = [...messages].reverse().find((message) => message.role === 'user')?.text ?? '';
+        const selectionPrompt = `O usuário clicou na audiência de ID ${normalized.id}, título "${normalized.titulo}". Mensagem do usuário: "${mensagemUsuario}". A audiência ainda não foi confirmada como fonte; ajude o usuário a analisar o resumo e os participantes.`;
+        const messageId = `audience-selection-${Date.now()}`;
+        setMessages((prev) => [...prev, {
+          id: messageId,
+          role: 'user',
+          text: selectionMessage,
+        }]);
+
+        const response = await api.sendWorkflowMessage(sessionId, selectionPrompt, 'brainstorm', true);
+        const replyText = String(response?.message?.content ?? response?.reply ?? '').trim();
+        if (replyText) {
+          setMessages((prev) => [...prev, {
+            id: `${messageId}-reply`,
+            role: 'assistant',
+            text: replyText,
+          }]);
+        }
       }
     } catch (cause) {
+      if (detalheRequestId !== detalheRequestRef.current) return;
       setError(cause instanceof Error ? cause.message : 'Não foi possível carregar a audiência.');
+      if (notifyAgent) {
+        setSessionError(cause instanceof Error ? cause.message : 'Não foi possível informar o agente sobre a audiência.');
+      }
     } finally {
-      setLoadingDetalhe(false);
+      if (detalheRequestId === detalheRequestRef.current) setLoadingDetalhe(false);
+      if (notifyAgent) setAudienceSelectionBusy(false);
     }
   };
 
   const handleSend = async (text: string) => {
+    if (sendingMessage) return;
+
     const id = `m-${Date.now()}`;
     const foundSerie = parseSerie(text);
     const foundTipo = parseTipoMaterial(text);
@@ -337,7 +393,9 @@ export const SuggestPage: React.FC = () => {
     setSerie(nextSerie);
     setTipoMaterial(nextTipo);
 
-    setLoadingSugestoes(true);
+    const showPlanningLoader = sugestoes.length === 0;
+    if (showPlanningLoader) setLoadingSugestoes(true);
+    setSendingMessage(true);
 
     const confirmacoes: string[] = [];
     if (foundSerie) confirmacoes.push(`série ${foundSerie}`);
@@ -360,7 +418,8 @@ export const SuggestPage: React.FC = () => {
       setSessionError(message);
       setMessages((prev) => [...prev, { id: `${id}-r`, role: 'assistant', text: `Não consegui concluir esta mensagem: ${message}` }]);
     } finally {
-      setLoadingSugestoes(false);
+      setSendingMessage(false);
+      if (showPlanningLoader) setLoadingSugestoes(false);
     }
   };
 
@@ -376,38 +435,62 @@ export const SuggestPage: React.FC = () => {
       setAdvancing(false);
       return;
     }
+    if (!detalhe?.id) {
+      setError('Selecione uma audiência antes de avançar.');
+      setAdvancing(false);
+      return;
+    }
     try {
+      // A consulta do card é local. A confirmação é que grava a audiência no
+      // sandbox, criando audiencia.json para a validação do backend.
+      await api.selectWorkflowPlanningItem(sessionId, detalhe.id);
       const result = await api.advanceWorkflow(sessionId);
       if (!result.allowed) {
+        const advanceReply = typeof result.message === 'object' && result.message
+          ? String(
+            (result.message as { content?: unknown; text?: unknown }).content
+              ?? (result.message as { text?: unknown }).text
+              ?? '',
+          ).trim()
+          : String(result.message ?? '').trim();
+        if (advanceReply) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `advance-feedback-${Date.now()}`,
+              role: 'assistant',
+              text: advanceReply,
+            },
+          ]);
+        }
         setError('O brainstorm ainda não concluiu o planejamento. Converse mais um pouco com o agente.');
         setAdvancing(false);
         return;
       }
 
-      // Se o agente final já deixou um HTML no sandbox, apenas abrimos o editor.
-      // Caso contrário, pedimos a geração aqui e só navegamos quando o arquivo
-      // estiver disponível para o editor.
-      const session = await api.getWorkflowSession(sessionId);
-      const finalAgent = session.selected_agent
+      const selectedAudienceMessage = `Escolhi a audiência de ID ${detalhe?.id ?? 'desconhecido'}: ${detalhe?.titulo ?? 'sem título'}.`;
+      const mensagemUsuario = [...messages].reverse().find((message) => message.role === 'user')?.text ?? '';
+      const contextoSelecao = `O usuário clicou na audiência de ID ${detalhe?.id ?? 'desconhecido'}, título "${detalhe?.titulo ?? 'sem título'}". Mensagem do usuário: "${mensagemUsuario}".`;
+      setMessages((prev) => [...prev, {
+        id: `selected-audience-${Date.now()}`,
+        role: 'user',
+        text: selectedAudienceMessage,
+      }]);
+      const workflowSession = await api.getWorkflowSession(sessionId);
+      const finalAgent = workflowSession.selected_agent
         ?? backendAgentFromType(tipoLabelToId(tipoMaterial, urlType))
         ?? 'generic';
       let html = '';
       try {
         html = await api.getWorkflowHtml(sessionId);
       } catch {
-        // HTML ainda não existe: o agente final precisa gerá-lo.
+        // O HTML ainda não existe; abaixo pedimos ao agente para gerar ou
+        // explicar no chat quais informações ainda estão faltando.
       }
-      const selectedAudienceMessage = `Escolhi a audiência de ID ${detalhe?.id ?? 'desconhecido'}: ${detalhe?.titulo ?? 'sem título'}. Descrição: ${detalhe?.resumo ?? 'sem descrição'}`;
-      setMessages((prev) => [...prev, {
-        id: `selected-audience-${Date.now()}`,
-        role: 'user',
-        text: selectedAudienceMessage,
-      }]);
       if (!html) {
-        await api.sendWorkflowMessage(sessionId, selectedAudienceMessage, finalAgent, true);
         const generationResponse = await api.sendWorkflowMessage(
           sessionId,
-          `Gere o material final "${tipoMaterial ?? 'Novo material'}"${serie ? ` para ${serie}` : ''} usando a audiência escolhida e salve o resultado completo em HTML.html.`,
+          `${contextoSelecao} Use essa audiência como fonte do material final "${tipoMaterial ?? 'Novo material'}"${serie ? ` para ${serie}` : ''}. Verifique primeiro se há informações indispensáveis faltando. Se estiver tudo completo, gere o HTML completo e salve-o em HTML.html. Se faltar qualquer informação, não gere nem salve o HTML; responda em português informando claramente ao professor o que ele precisa fornecer.`,
           finalAgent,
           true,
         );
@@ -431,7 +514,13 @@ export const SuggestPage: React.FC = () => {
           }
         }
         if (!html) {
-          throw new Error('O agente não terminou de gerar o material HTML.');
+          setError(
+            generationReply
+              ? 'O agente identificou informações faltantes. Veja no chat o que precisa ser informado antes de gerar o material.'
+              : 'O agente não terminou de gerar o material HTML e não informou o que está faltando.',
+          );
+          setAdvancing(false);
+          return;
         }
       }
     } catch (cause) {
@@ -480,8 +569,12 @@ export const SuggestPage: React.FC = () => {
             <AudienciaList
               items={sugestoes}
               selectedId={selectedId}
-              onSelect={handleSelect}
+              // A seleção do card também informa ao agente qual audiência foi escolhida.
+              onSelect={(id) => { void handleSelect(id, true); }}
               loading={loadingSugestoes}
+              // A troca de card continua livre; bloqueie somente durante uma
+              // mensagem do chat ou o avanço pelo botão de confirmação.
+              disabled={audienceSelectionBusy || sendingMessage || advancing}
             />
           </div>
         </div>
@@ -490,13 +583,13 @@ export const SuggestPage: React.FC = () => {
         <div className="flex-1 min-w-0 h-full min-h-0">
           <AudienciaDetalhes
             detalhe={detalhe}
-            loading={loadingDetalhe}
+            loading={loadingDetalhe && !detalhe}
             serie={serie}
             tipoMaterial={tipoMaterial}
             error={error}
             onProceed={handleProceed}
-            proceedDisabled={advancing || loadingSugestoes}
-            onSelectAudiencia={handleSelect}
+            proceedDisabled={advancing || loadingSugestoes || sendingMessage || loadingDetalhe}
+            onSelectAudiencia={(id) => { void handleSelect(id, true); }}
           />
         </div>
 
@@ -507,7 +600,7 @@ export const SuggestPage: React.FC = () => {
           placeholder="Pergunte ao Contraponto..."
           contextLabel="Fontes primárias — audiências"
           contextIcon="document"
-          busy={advancing}
+          busy={advancing || sendingMessage || audienceSelectionBusy}
           selectionLabel={detalhe?.titulo}
           onClearSelection={() => {
             setSelectedId(null);

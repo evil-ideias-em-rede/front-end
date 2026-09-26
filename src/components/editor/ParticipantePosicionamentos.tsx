@@ -32,7 +32,14 @@ export const ParticipantePosicionamentos: React.FC<ParticipantePosicionamentosPr
     .filter((f) => f.autor === participante.nome)
     .sort((a, b) => a.ordem_no_debate - b.ordem_no_debate);
 
-  const propostas = detalhe.propostas.filter((p) => p.autor === participante.nome);
+  const propostas = detalhe.propostas
+    .filter((p) => p.autor === participante.nome)
+    .filter((proposta, index, todas) => {
+      const texto = (proposta.titulo || proposta.descricao).trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+      return todas.findIndex((item) =>
+        (item.titulo || item.descricao).trim().toLocaleLowerCase().replace(/\s+/g, ' ') === texto
+      ) === index;
+    });
 
   const outrosDebates = findAudienciasByParticipante(participante.nome).filter(
     (d) => d.id !== detalhe.id
@@ -145,20 +152,13 @@ export const ParticipantePosicionamentos: React.FC<ParticipantePosicionamentosPr
             Nenhuma proposta registrada para este participante.
           </p>
         ) : (
-          propostas.map((proposta) => (
-            <div
-              key={proposta.id}
-              className="rounded-2xl border p-4"
-              style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: '#ffffff70' }}
-            >
-              <h4 className="text-xs font-black leading-snug" style={{ color: THEME_COLORS.textDark }}>
-                {proposta.titulo}
-              </h4>
-              <p className="mt-1 text-[11px] font-medium leading-relaxed" style={{ color: THEME_COLORS.gray }}>
-                {proposta.descricao}
-              </p>
-            </div>
-          ))
+          <ul className="list-disc space-y-1.5 pl-5 text-[11px] font-medium leading-relaxed" style={{ color: THEME_COLORS.textDark }}>
+            {propostas.map((proposta) => (
+              <li key={proposta.id}>
+                {proposta.titulo || proposta.descricao}
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

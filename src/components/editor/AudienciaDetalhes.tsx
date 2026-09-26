@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, BookOpenText, ChevronDown, FileText, ListChecks, Scale, Users } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import type { AudienciaDetalhe } from '../../data/mockAudiencias';
-import { PropostaCard } from './PropostaCard';
 import { ParticipantePosicionamentos } from './ParticipantePosicionamentos';
 import { AudienciaIntegra } from './AudienciaIntegra';
 import { POSICAO_ORDEM, POSICAO_TEMA_META, isPresidente, posicaoAgregada } from '../../utils/posicaoTema';
@@ -30,15 +29,31 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
 }) => {
   const [participanteSelecionado, setParticipanteSelecionado] = useState<string | null>(null);
   const [mostrarIntegra, setMostrarIntegra] = useState(false);
+  const [resumoExpandido, setResumoExpandido] = useState(false);
   const [participantesExpandidos, setParticipantesExpandidos] = useState(false);
+  const [posicionamentosExpandidos, setPosicionamentosExpandidos] = useState<Record<string, boolean>>({});
   const [participantesOverflow, setParticipantesOverflow] = useState(false);
   const participantesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setParticipanteSelecionado(null);
+    const participanteSalvo = detalhe?.id
+      ? window.sessionStorage.getItem(`audiencia-${detalhe.id}-participante`)
+      : null;
+    const participanteExiste = participanteSalvo
+      && detalhe?.participantes.some((participante) => participante.nome === participanteSalvo);
+    setParticipanteSelecionado(participanteExiste ? participanteSalvo : null);
     setMostrarIntegra(false);
+    setResumoExpandido(false);
     setParticipantesExpandidos(false);
+    setPosicionamentosExpandidos({});
   }, [detalhe?.id]);
+
+  const selecionarParticipante = (nome: string) => {
+    setParticipanteSelecionado(nome);
+    if (detalhe?.id) {
+      window.sessionStorage.setItem(`audiencia-${detalhe.id}-participante`, nome);
+    }
+  };
 
   useEffect(() => {
     if (participantesExpandidos) return;
@@ -59,6 +74,20 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
           posicaoAgregada(detalhe.falas.filter((f) => f.autor === p.nome)) === posicao
       ),
     }));
+  }, [detalhe]);
+
+  const propostasPorAutor = useMemo(() => {
+    if (!detalhe) return [];
+    const grupos = new Map<string, typeof detalhe.propostas>();
+    for (const proposta of detalhe.propostas) {
+      const autor = proposta.autor.trim() || 'Participante não identificado';
+      const propostas = grupos.get(autor) ?? [];
+      if (!propostas.some((item) => item.descricao.trim().toLocaleLowerCase() === proposta.descricao.trim().toLocaleLowerCase())) {
+        propostas.push(proposta);
+      }
+      grupos.set(autor, propostas);
+    }
+    return Array.from(grupos.entries());
   }, [detalhe]);
 
   if (loading) {
@@ -131,22 +160,40 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
         ) : (
           <>
         <section className="space-y-1.5">
+          <div className="flex items-center gap-1.5">
           <h3 className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1.5" style={{ color: THEME_COLORS.gray }}>
             <FileText className="w-3.5 h-3.5" />
             Resumo da audiência
           </h3>
-          <p className="text-xs font-medium leading-relaxed line-clamp-7" style={{ color: THEME_COLORS.textDark }}>
-            {detalhe.resumo}
-          </p>
           <button
             type="button"
-            onClick={() => setMostrarIntegra(true)}
+            onClick={() => setResumoExpandido((expandido) => !expandido)}
+            aria-label={resumoExpandido ? 'Recolher resumo da audiência' : 'Expandir resumo da audiência'}
+            title={resumoExpandido ? 'Recolher resumo' : 'Expandir resumo'}
             className="inline-flex items-center gap-1 text-[11px] font-black cursor-pointer hover:underline"
             style={{ color: THEME_COLORS.primary }}
           >
-            <BookOpenText className="w-3.5 h-3.5" />
-            Ver audiência na íntegra
+            {resumoExpandido ? 'Ver menos' : 'Ver mais'}
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${resumoExpandido ? 'rotate-180' : ''}`} />
           </button>
+          </div>
+          <p
+            className={`text-xs font-medium leading-relaxed ${resumoExpandido ? 'whitespace-pre-wrap' : 'line-clamp-3'}`}
+            style={{ color: THEME_COLORS.textDark }}
+          >
+            {detalhe.resumo}
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMostrarIntegra(true)}
+              className="inline-flex items-center gap-1 text-[11px] font-black cursor-pointer hover:underline"
+              style={{ color: THEME_COLORS.primary }}
+            >
+              <BookOpenText className="w-3.5 h-3.5" />
+              Ver audiência na íntegra
+            </button>
+          </div>
         </section>
 
         <section className="space-y-1.5">
@@ -179,7 +226,7 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
                 <button
                   key={p.nome}
                   type="button"
-                  onClick={() => setParticipanteSelecionado(p.nome)}
+                  onClick={() => selecionarParticipante(p.nome)}
                   className="px-2.5 py-1.5 rounded-full border text-[11px] font-bold transition-all cursor-pointer hover:shadow-md"
                   style={{
                     borderColor: THEME_COLORS.borderLight,
@@ -222,29 +269,43 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
               className="rounded-2xl border p-4"
               style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: '#ffffff70' }}
             >
-              <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => grupo.participantes.length > 2 && setPosicionamentosExpandidos((prev) => ({
+                  ...prev,
+                  [grupo.posicao]: !prev[grupo.posicao],
+                }))}
+                className={`w-full flex items-center gap-1.5 text-left ${grupo.participantes.length > 2 ? 'cursor-pointer' : 'cursor-default'}`}
+                aria-expanded={grupo.participantes.length > 2 ? Boolean(posicionamentosExpandidos[grupo.posicao]) : undefined}
+              >
                 <span
                   className="w-2.5 h-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: grupo.meta.color }}
                 />
-                <h4 className="text-xs font-black leading-snug" style={{ color: THEME_COLORS.textDark }}>
+                <span className="text-xs font-black leading-snug" style={{ color: THEME_COLORS.textDark }}>
                   {grupo.posicao === 'contra' && 'Posicionamentos contra'}
                   {grupo.posicao === 'neutro' && 'Posicionamentos neutros'}
                   {grupo.posicao === 'favor' && 'Posicionamentos a favor'}
                   {grupo.posicao === 'ambiguo' && 'Posicionamentos ambíguos'}
-                </h4>
-              </div>
+                </span>
+                {grupo.participantes.length > 2 && (
+                  <span className="ml-auto inline-flex items-center gap-0.5 text-[10px] font-black" style={{ color: THEME_COLORS.primary }}>
+                    {posicionamentosExpandidos[grupo.posicao] ? 'Ver menos' : 'Ver mais'}
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${posicionamentosExpandidos[grupo.posicao] ? 'rotate-180' : ''}`} />
+                  </span>
+                )}
+              </button>
               {grupo.participantes.length === 0 ? (
                 <p className="mt-1.5 text-[11px] font-medium" style={{ color: THEME_COLORS.gray }}>
                   Nenhum participante nesta categoria.
                 </p>
               ) : (
                 <div className="mt-2 space-y-1.5">
-                  {grupo.participantes.map((p) => (
+                  {(posicionamentosExpandidos[grupo.posicao] ? grupo.participantes : grupo.participantes.slice(0, 2)).map((p) => (
                     <button
                       key={p.nome}
                       type="button"
-                      onClick={() => setParticipanteSelecionado(p.nome)}
+                      onClick={() => selecionarParticipante(p.nome)}
                       className="w-full text-left rounded-[15px] p-2.5 transition-all cursor-pointer hover:shadow-md border-l-[3px]"
                       style={{
                         backgroundColor: 'transparent',
@@ -272,8 +333,23 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
             <ListChecks className="w-3.5 h-3.5" />
             Propostas identificadas
           </h3>
-          {detalhe.propostas.map((proposta) => (
-            <PropostaCard key={proposta.id} proposta={proposta} />
+          {propostasPorAutor.map(([autor, propostas]) => (
+            <div
+              key={autor}
+              className="rounded-2xl border p-4"
+              style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: '#ffffff70' }}
+            >
+              <h4 className="text-xs font-black leading-snug" style={{ color: THEME_COLORS.textDark }}>
+                Proposta de {autor}
+              </h4>
+              <ul className="mt-2 list-disc space-y-1.5 pl-4">
+                {propostas.map((proposta) => (
+                  <li key={proposta.id} className="text-[11px] font-bold leading-relaxed" style={{ color: THEME_COLORS.textDark }}>
+                    {proposta.titulo}
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
         </section>
           </>

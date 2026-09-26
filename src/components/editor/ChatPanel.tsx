@@ -182,7 +182,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               <button
                 type="button"
                 onClick={onClearSelection}
-                className="w-4 h-4 rounded-full flex items-center justify-center text-stone-400 hover:bg-black/[0.06] hover:text-stone-600 transition-colors cursor-pointer"
+                disabled={busy}
+                className="w-4 h-4 rounded-full flex items-center justify-center text-stone-400 hover:bg-black/[0.06] hover:text-stone-600 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
                 title="Desselecionar"
               >
                 <X className="w-3 h-3" />

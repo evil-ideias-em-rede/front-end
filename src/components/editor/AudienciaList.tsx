@@ -8,6 +8,7 @@ interface AudienciaListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   loading?: boolean;
+  disabled?: boolean;
 }
 
 export const AudienciaList: React.FC<AudienciaListProps> = ({
@@ -15,6 +16,7 @@ export const AudienciaList: React.FC<AudienciaListProps> = ({
   selectedId,
   onSelect,
   loading = false,
+  disabled = false,
 }) => {
   if (loading) {
     return (
@@ -55,12 +57,14 @@ export const AudienciaList: React.FC<AudienciaListProps> = ({
           <button
             key={item.id}
             type="button"
+            disabled={disabled}
             onClick={() => onSelect(item.id)}
-            className="w-full text-left rounded-2xl border p-4 transition-all cursor-pointer hover:shadow-md"
+            className="w-full text-left rounded-2xl border p-4 transition-all cursor-pointer hover:shadow-md disabled:cursor-not-allowed disabled:hover:shadow-none"
             style={{
               backgroundColor: isSelected ? '#ffffff' : '#ffffff60',
               borderColor: isSelected ? THEME_COLORS.primary : THEME_COLORS.borderLight,
               boxShadow: isSelected ? `0 8px 20px ${THEME_COLORS.primary}22` : undefined,
+              opacity: disabled ? 0.65 : 1,
             }}
           >
             <h3 className="text-xs font-black leading-snug" style={{ color: THEME_COLORS.textDark }}>
