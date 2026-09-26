@@ -97,6 +97,9 @@ const INITIAL_BRAINSTORM_MESSAGE: ChatMessage = {
   text: 'Me conte qual tema você quer trabalhar — e, se já souber, a série e o tipo de material (plano de aula, roteiro de debate, oficina de redação). Vou buscar as audiências que mais combinam.',
 };
 
+// Temporário: qualquer sugestão clicada abre o mesmo debate anotado no back-end.
+const FIXED_AUDIENCIA_ID = 'mimo-1';
+
 function truncate(text: string, max = 180): string {
   const normalized = text.trim();
   return normalized.length <= max ? normalized : `${normalized.slice(0, max - 1)}…`;
@@ -111,6 +114,15 @@ function normalizeAudiencia(raw: any): AudienciaDetalhe {
     if (!Array.isArray(people)) continue;
     for (const person of people as Array<{ participanteId?: string; resumo?: string }>) {
       if (person.participanteId) positionByParticipant.set(person.participanteId, position);
+    }
+  }
+  for (const fala of discursos) {
+    const taxonomia = fala?.taxonomia;
+    const posicionamento = Array.isArray(taxonomia?.Posicionamento)
+      ? taxonomia.Posicionamento[0]
+      : fala?.posicionamento;
+    if (fala?.participanteId && posicionamento && !positionByParticipant.has(String(fala.participanteId))) {
+      positionByParticipant.set(String(fala.participanteId), String(posicionamento));
     }
   }
   const participantById = new Map<string, any>(participantes.map((person: any) => [String(person.id), person]));
@@ -132,7 +144,12 @@ function normalizeAudiencia(raw: any): AudienciaDetalhe {
       resumoArgumentos: String((() => {
         const position = positionByParticipant.get(String(person.id));
         const group = position ? (posicionamentos as Record<string, any[]>)[position] ?? [] : [];
+        const falaDoParticipante = discursos
+          .filter((fala: any) => String(fala.participanteId) === String(person.id))
+          .map((fala: any) => String(fala.resumo ?? '').trim())
+          .find(Boolean);
         return group.find((item: any) => String(item.participanteId) === String(person.id))?.resumo
+          ?? falaDoParticipante
           ?? 'Sem resumo de posicionamento registrado.';
       })()),
     })),
@@ -141,9 +158,11 @@ function normalizeAudiencia(raw: any): AudienciaDetalhe {
       autor: String(fala.orador ?? ''),
       ordem_no_debate: Number(fala.ordem ?? index + 1),
       texto: String(fala.texto ?? ''),
-      resumo: truncate(String(fala.texto ?? ''), 220),
-      objeto_do_posicionamento: String(fala.posicionamento ?? ''),
-      taxonomia: { Posicionamento: [String(fala.posicionamento ?? 'neutro')] },
+      resumo: String(fala.resumo ?? '').trim() || truncate(String(fala.texto ?? ''), 220),
+      objeto_do_posicionamento: String(fala.objeto_do_posicionamento ?? fala.posicionamento ?? ''),
+      taxonomia: fala.taxonomia && typeof fala.taxonomia === 'object'
+        ? fala.taxonomia
+        : { Posicionamento: fala.posicionamento ? [String(fala.posicionamento)] : [] },
     })),
     propostas: (Array.isArray(raw?.propostas) ? raw.propostas : []).map((proposta: any) => ({
       id: String(proposta.id ?? ''),
@@ -234,9 +253,7 @@ export const SuggestPage: React.FC = () => {
         const [session, planning, audiencia] = await Promise.all([
           api.getWorkflowSession(sessionIdParam),
           api.getWorkflowPlanning<PlanningItem>(sessionIdParam),
-          audienciaIdParam
-            ? api.getAudiencia<any>(audienciaIdParam)
-            : api.getWorkflowFile<any>(sessionIdParam, 'audiencia.json').catch(() => null),
+          api.getAudiencia<any>(FIXED_AUDIENCIA_ID),
         ]);
 
         if (!active) return;
@@ -280,8 +297,11 @@ export const SuggestPage: React.FC = () => {
     setError(null);
     setLoadingDetalhe(true);
     try {
-      const audiencia = await api.getAudiencia<any>(id);
-      if (sessionId) await api.selectWorkflowPlanningItem(sessionId, id);
+      // Mantém o item clicado selecionado visualmente, mas usa sempre a fonte fixa.
+      if (sessionId) {
+        await api.selectWorkflowPlanningItem(sessionId, id).catch(() => undefined);
+      }
+      const audiencia = await api.getAudiencia<any>(FIXED_AUDIENCIA_ID);
       const normalized = normalizeAudiencia(audiencia);
       setDetalhe(normalized);
 

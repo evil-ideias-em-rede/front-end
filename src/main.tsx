@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+﻿import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import './index.css'
@@ -25,6 +25,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="materiais/:id" element={<MaterialDetailPage />} />
           <Route path="editor" element={<SuggestPage />} />
           <Route path="editor/material" element={<MaterialEditorPage />} />
+          <Route path="perfil" element={null} />
         </Route>
         <Route path="/landing" element={<Navigate to="/" replace />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
