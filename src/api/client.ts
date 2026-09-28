@@ -17,6 +17,7 @@ export interface WorkflowSession {
   id: string;
   created_at: string;
   selected_agent: string | null;
+  selected_audience_id?: string | null;
   messages: Array<Record<string, unknown>>;
 }
 

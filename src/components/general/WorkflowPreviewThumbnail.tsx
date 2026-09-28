@@ -32,10 +32,13 @@ export const WorkflowPreviewThumbnail: React.FC<WorkflowPreviewThumbnailProps> =
     return <File className="w-14 h-14" style={{ color: THEME_COLORS.primary }} />;
   }
 
+  const hasPageMarkers = /\bdata-ied-page\s*=/i.test(html);
+
   return (
     <HtmlPreview
       html={html}
       fit
+      pageIndex={hasPageMarkers ? 0 : undefined}
       className="h-full w-full"
     />
   );
