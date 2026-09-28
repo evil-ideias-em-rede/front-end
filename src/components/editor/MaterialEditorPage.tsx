@@ -78,7 +78,7 @@ export const MaterialEditorPage: React.FC = () => {
   const loadedContentIdRef = useRef<string | null>(null);
   const [backendError, setBackendError] = useState<string | null>(null);
   const [llmBusy, setLlmBusy] = useState(Boolean(sessionId));
-  const [exportingFormat, setExportingFormat] = useState<'html' | 'pdf' | 'docx' | null>(null);
+  const [exportingFormat, setExportingFormat] = useState<'html' | 'pdf' | 'docx' | 'pptx' | null>(null);
   const [hasPendingManualEdits, setHasPendingManualEdits] = useState(false);
   const manualEditVersionRef = useRef(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -376,6 +376,24 @@ export const MaterialEditorPage: React.FC = () => {
     }
   };
 
+  const handleExportPptx = async () => {
+    if (materialType !== 'slides') return;
+    if (!activeSessionId) {
+      setBackendError('Salve a apresentação em uma sessão antes de exportar o PPTX.');
+      return;
+    }
+
+    try {
+      setBackendError(null);
+      setExportingFormat('pptx');
+      await api.downloadWorkflowPptx(activeSessionId, html);
+    } catch (cause) {
+      setBackendError(cause instanceof Error ? cause.message : 'Não foi possível exportar o PPTX.');
+    } finally {
+      setExportingFormat(null);
+    }
+  };
+
   const handleBack = () => {
     if (llmBusy) return;
     const params = new URLSearchParams();
@@ -435,6 +453,7 @@ export const MaterialEditorPage: React.FC = () => {
           backDisabled={Boolean(templateId) || !activeSessionId}
           onExportHtml={templateId ? () => void handleExportTemplate('html') : undefined}
           onExportDocx={templateId ? () => void handleExportTemplate('docx') : undefined}
+          onExportPptx={materialType === 'slides' ? () => void handleExportPptx() : undefined}
           exportingFormat={exportingFormat}
           title={documentTitle}
           onTitleChange={(nextTitle) => {

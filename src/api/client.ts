@@ -441,6 +441,43 @@ export async function downloadWorkflowPdf(
   URL.revokeObjectURL(url);
 }
 
+export async function downloadWorkflowPptx(sessionId: string, html: string): Promise<void> {
+  const form = new FormData();
+  form.append('file', new File([html], 'HTML.html', { type: 'text/html' }));
+
+  const token = getAccessToken();
+  const headers = new Headers();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const response = await fetch(
+    `${API_BASE}/api/workflow/sessions/${encodeURIComponent(sessionId)}/pptx`,
+    { method: 'POST', headers, body: form },
+  );
+  if (!response.ok) {
+    const body = await response.text();
+    let detail = body || response.statusText;
+    try {
+      const parsed = JSON.parse(body) as { detail?: string };
+      detail = parsed.detail || detail;
+    } catch {
+      // Mantém a mensagem textual retornada pelo servidor.
+    }
+    throw new Error(detail || `Erro ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('content-disposition') || '';
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || 'apresentacao.pptx';
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export type WorkflowDownloadFormat = 'html' | 'pdf' | 'docx';
 
 export async function downloadWorkflowFile(

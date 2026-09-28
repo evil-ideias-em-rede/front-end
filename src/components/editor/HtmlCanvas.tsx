@@ -25,7 +25,8 @@ interface HtmlCanvasProps {
   onExportPdf: () => void;
   onExportHtml?: () => void;
   onExportDocx?: () => void;
-  exportingFormat?: 'html' | 'pdf' | 'docx' | null;
+  onExportPptx?: () => void;
+  exportingFormat?: 'html' | 'pdf' | 'docx' | 'pptx' | null;
   exportingPdf?: boolean;
   /** Quando definido, exibe o botão de lixeira no menu superior. */
   onDelete?: () => void;
@@ -53,6 +54,7 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
   onExportPdf,
   onExportHtml,
   onExportDocx,
+  onExportPptx,
   exportingFormat = null,
   onDelete,
   exportingPdf = false,
@@ -291,11 +293,12 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
                       if (id === 'html') onExportHtml?.();
                       if (id === 'pdf') onExportPdf();
                       if (id === 'docx') onExportDocx?.();
+                      if (id === 'pptx') onExportPptx?.();
                     }}
                     disabled={id === 'pdf' ? exportingPdf : exportingFormat === id}
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold transition-colors hover:bg-black/[0.04] cursor-pointer"
                     style={{ color: THEME_COLORS.textDark }}
-                    title={id === 'pptx' ? `Exportar como ${label} (em breve)` : `Exportar como ${label}`}
+                    title={`Exportar como ${label}`}
                   >
                     <Icon className="w-4 h-4" style={{ color: THEME_COLORS.primary }} />
                     {exportingFormat === id || (id === 'pdf' && exportingPdf) ? `Gerando ${label}...` : label}
