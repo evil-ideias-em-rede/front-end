@@ -396,6 +396,10 @@ export async function getWorkflowHtml(sessionId: string): Promise<string> {
   return request<string>(`/api/workflow/sessions/${sessionId}/html`);
 }
 
+export async function workflowHtmlExists(sessionId: string): Promise<boolean> {
+  return request<boolean>(`/api/workflow/sessions/${encodeURIComponent(sessionId)}/html/exists`);
+}
+
 export async function uploadWorkflowFile(sessionId: string, filename: string, content: string): Promise<void> {
   const form = new FormData();
   form.append('file', new File([content], filename, { type: 'text/html' }));

@@ -14,6 +14,7 @@ interface AudienciaDetalhesProps {
   error: string | null;
   onProceed: () => void;
   proceedDisabled?: boolean;
+  htmlReady?: boolean;
   onSelectAudiencia: (id: string) => void;
 }
 
@@ -25,6 +26,7 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
   error,
   onProceed,
   proceedDisabled = false,
+  htmlReady = false,
   onSelectAudiencia,
 }) => {
   const [participanteSelecionado, setParticipanteSelecionado] = useState<string | null>(null);
@@ -371,7 +373,7 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
             onClick={onProceed}
             disabled={proceedDisabled}
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-black text-white transition-all hover:scale-[1.02] cursor-pointer shadow-md disabled:opacity-50 disabled:cursor-wait disabled:hover:scale-100"
-            style={{ backgroundColor: THEME_COLORS.primary }}
+            style={{ backgroundColor: htmlReady ? '#16A34A' : THEME_COLORS.primary }}
           >
             {proceedDisabled ? 'Aguardando resposta...' : 'Usar essa audiência como fonte'}
             <ArrowRight className="w-4 h-4" />

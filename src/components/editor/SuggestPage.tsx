@@ -208,6 +208,7 @@ export const SuggestPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(sessionIdParam);
+  const [htmlReady, setHtmlReady] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const creatingSession = useRef<Promise<string> | null>(null);
   const detalheRequestRef = useRef(0);
@@ -218,11 +219,25 @@ export const SuggestPage: React.FC = () => {
       creatingSession.current = api.createWorkflowSession(backendAgentFromType(urlType))
         .then((session) => {
           setSessionId(session.id);
+          const params = new URLSearchParams(searchParams);
+          params.set('sessionId', session.id);
+          navigate({ search: params.toString() }, { replace: true });
           return session.id;
         })
         .finally(() => { creatingSession.current = null; });
     }
     return creatingSession.current;
+  };
+
+  const refreshHtmlReady = async (currentSessionId: string): Promise<boolean> => {
+    try {
+      const exists = await api.workflowHtmlExists(currentSessionId);
+      setHtmlReady(exists);
+      return exists;
+    } catch {
+      setHtmlReady(false);
+      return false;
+    }
   };
 
   const loadPlanning = async (currentSessionId: string) => {
@@ -257,10 +272,42 @@ export const SuggestPage: React.FC = () => {
   }, [sessionId]);
 
   useEffect(() => {
+    if (!sessionId) return undefined;
+
+    let active = true;
+    const checkHtml = async () => {
+      try {
+        const exists = await api.workflowHtmlExists(sessionId);
+        if (active) setHtmlReady(exists);
+      } catch {
+        if (active) setHtmlReady(false);
+      }
+    };
+    const checkVisibleHtml = () => {
+      if (document.visibilityState === 'visible') void checkHtml();
+    };
+
+    void checkHtml();
+    const intervalId = window.setInterval(checkVisibleHtml, 3000);
+    window.addEventListener('focus', checkVisibleHtml);
+    window.addEventListener('pageshow', checkVisibleHtml);
+    document.addEventListener('visibilitychange', checkVisibleHtml);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', checkVisibleHtml);
+      window.removeEventListener('pageshow', checkVisibleHtml);
+      document.removeEventListener('visibilitychange', checkVisibleHtml);
+    };
+  }, [sessionId]);
+
+  useEffect(() => {
     let active = true;
 
     if (!sessionIdParam) {
       setSessionId(null);
+      setHtmlReady(false);
       setMessages([INITIAL_BRAINSTORM_MESSAGE]);
       setSugestoes([]);
       setSelectedId(null);
@@ -275,9 +322,10 @@ export const SuggestPage: React.FC = () => {
 
     const restoreSession = async () => {
       try {
-        const [session, planning] = await Promise.all([
+        const [session, planning, restoredHtmlReady] = await Promise.all([
           api.getWorkflowSession(sessionIdParam),
           api.getWorkflowPlanning<PlanningItem>(sessionIdParam),
+          api.workflowHtmlExists(sessionIdParam).catch(() => false),
         ]);
 
         const audienciaId = audienciaIdParam
@@ -309,6 +357,7 @@ export const SuggestPage: React.FC = () => {
         })));
         setSelectedId(audiencia?.id ? String(audiencia.id) : audienciaIdParam);
         setDetalhe(audiencia ? normalizeAudiencia(audiencia) : null);
+        setHtmlReady(restoredHtmlReady);
         setSessionError(null);
       } catch (cause) {
         if (active) {
@@ -369,6 +418,7 @@ export const SuggestPage: React.FC = () => {
             text: replyText,
           }]);
         }
+        await refreshHtmlReady(sessionId);
       }
     } catch (cause) {
       if (detalheRequestId !== detalheRequestRef.current) return;
@@ -411,7 +461,10 @@ export const SuggestPage: React.FC = () => {
         role: 'assistant',
         text: `${replyText}${confirmacoes.length > 0 ? ` Anotei: ${confirmacoes.join(' + ')}.` : ''}`,
       }]);
-      await loadPlanning(currentSessionId);
+      await Promise.all([
+        loadPlanning(currentSessionId),
+        refreshHtmlReady(currentSessionId),
+      ]);
       setSessionError(null);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Não foi possível conversar com o agente.';
@@ -589,6 +642,7 @@ export const SuggestPage: React.FC = () => {
             error={error}
             onProceed={handleProceed}
             proceedDisabled={advancing || loadingSugestoes || sendingMessage || loadingDetalhe}
+            htmlReady={htmlReady}
             onSelectAudiencia={(id) => { void handleSelect(id, true); }}
           />
         </div>
