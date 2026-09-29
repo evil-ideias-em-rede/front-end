@@ -45,7 +45,7 @@ export const DashboardLayout: React.FC = () => {
   const handleSelectMenu = (menu: SidebarMenuId) => {
     setActiveMenu(menu);
     const destinations: Record<SidebarMenuId, string> = {
-      criar: '/home/editor?type=brainstorm',
+      criar: '/home/editor?type=plano',
       settings: '/home/perfil',
       home: '/home',
       turmas: '/home/turmas',
@@ -82,7 +82,7 @@ export const DashboardLayout: React.FC = () => {
         onSelectMenu={handleSelectMenu}
         onOpenNewIdea={() => {
           setActiveMenu('criar');
-          navigate('/home/editor?type=brainstorm');
+          navigate('/home/editor?type=plano');
         }}
         onOpenSettings={() => {
           setActiveMenu('settings');

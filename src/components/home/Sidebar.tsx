@@ -65,7 +65,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     >
       {/* Top Brand (symbol only) */}
       <div className="p-4 pb-2 mt-2 flex justify-center">
-        <Logo variant="icon-only" size="sm" theme="dark" />
+        <button
+          type="button"
+          onClick={() => onSelectMenu('home')}
+          aria-label="Ir para o Início"
+          title="Início"
+          className="rounded-lg cursor-pointer transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+        >
+          <Logo variant="icon-only" size="sm" theme="dark" />
+        </button>
       </div>
 
       {/* Create / New Action Button (fixed, same as the other items) */}
@@ -74,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           type="button"
           onClick={onOpenNewIdea}
           className="w-full flex flex-col items-center gap-1.5 py-3 rounded-2xl transition-all cursor-pointer"
-          title="Criar novo plano de aula ou debate"
+          title="Criar novo plano de aula"
         >
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md shadow-[#7C3AED]/20 transition-transform hover:scale-105"
