@@ -306,7 +306,7 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
                       key={p.nome}
                       type="button"
                       onClick={() => selecionarParticipante(p.nome)}
-                      className="w-full text-left rounded-[15px] p-2.5 transition-all cursor-pointer hover:shadow-md border-l-[3px]"
+                      className="w-full text-left rounded-md p-2.5 transition-all cursor-pointer platform-positioning-card hover:shadow-md border-l-[3px]"
                       style={{
                         backgroundColor: 'transparent',
                         borderLeftColor: grupo.meta.color,

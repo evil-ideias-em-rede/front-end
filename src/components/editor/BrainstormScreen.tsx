@@ -67,7 +67,7 @@ export const BrainstormScreen: React.FC<BrainstormScreenProps> = ({ onProceed, t
                 key={idea.id}
                 type="button"
                 onClick={() => setSelectedId(isSelected ? null : idea.id)}
-                className={`text-left rounded-2xl border p-5 flex flex-col transition-all cursor-pointer ${
+                className={`text-left rounded-md border p-5 flex flex-col transition-all cursor-pointer ${
                   isSelected
                     ? 'shadow-lg row-span-2'
                     : 'hover:shadow-md hover:-translate-y-0.5'

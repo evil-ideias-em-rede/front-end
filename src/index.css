@@ -359,6 +359,12 @@
 }
 
 /* Atalhos de criação e cards acionáveis mantêm sua aparência própria. */
+.home-theme button.platform-positioning-card,
+.home-theme button.platform-audience-card {
+  border-radius: 0.375rem !important;
+}
+
+/* Estes elementos são cards/atalhos, não CTAs: preservam o desenho original. */
 .home-theme button.platform-create-button {
   border-radius: 0.5rem !important;
 }

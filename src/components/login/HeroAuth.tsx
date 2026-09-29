@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { LogIn, Sparkles } from 'lucide-react';
+import { ChevronDown, LogIn, Sparkles } from 'lucide-react';
 import { AbstractArtwork } from './AbstractArtwork';
 import { THEME_COLORS } from '../../constants/colors';
 import Logo from '../general/Logo';
@@ -81,6 +81,14 @@ export const HeroAuth: React.FC<HeroAuthProps> = ({ onOpenAuth }) => {
 
         </div>
       </div>
+      <button
+        type="button"
+        onClick={() => document.getElementById('sobre-iniciativa')?.scrollIntoView({ behavior: 'smooth' })}
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 p-2 text-[#5B3A8F] bg-transparent cursor-pointer transition-colors hover:text-[#7C3AED]"
+        aria-label="Ver mais conteúdo"
+      >
+        <ChevronDown className="w-7 h-7 animate-bounce" />
+      </button>
     </section>
   );
 };

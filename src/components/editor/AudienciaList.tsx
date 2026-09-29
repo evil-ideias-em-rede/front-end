@@ -24,7 +24,7 @@ export const AudienciaList: React.FC<AudienciaListProps> = ({
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="rounded-2xl border p-4 animate-pulse"
+            className="rounded-md border p-4 animate-pulse"
             style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: '#ffffff60' }}
           >
             <div className="h-3.5 w-3/4 rounded bg-black/10 mb-2" />
@@ -59,7 +59,7 @@ export const AudienciaList: React.FC<AudienciaListProps> = ({
             type="button"
             disabled={disabled}
             onClick={() => onSelect(item.id)}
-            className="w-full text-left rounded-2xl border p-4 transition-all cursor-pointer hover:shadow-md disabled:cursor-not-allowed disabled:hover:shadow-none"
+            className="w-full text-left rounded-md border p-4 transition-all cursor-pointer platform-audience-card hover:shadow-md disabled:cursor-not-allowed disabled:hover:shadow-none"
             style={{
               backgroundColor: isSelected ? '#ffffff' : '#ffffff60',
               borderColor: isSelected ? THEME_COLORS.primary : THEME_COLORS.borderLight,
