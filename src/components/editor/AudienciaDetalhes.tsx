@@ -13,6 +13,7 @@ interface AudienciaDetalhesProps {
   tipoMaterial: string | null;
   error: string | null;
   onProceed: () => void;
+  showProceed?: boolean;
   proceedDisabled?: boolean;
   htmlReady?: boolean;
   onSelectAudiencia: (id: string) => void;
@@ -25,6 +26,7 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
   tipoMaterial,
   error,
   onProceed,
+  showProceed = true,
   proceedDisabled = false,
   htmlReady = false,
   onSelectAudiencia,
@@ -342,7 +344,10 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
               style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: '#ffffff70' }}
             >
               <h4 className="text-xs font-black leading-snug" style={{ color: THEME_COLORS.textDark }}>
-                Proposta de {autor}
+                Proposta de{' '}
+                <span style={{ color: autor === 'Participante não identificado' ? undefined : THEME_COLORS.primary }}>
+                  {autor}
+                </span>
               </h4>
               <ul className="mt-2 list-disc space-y-1.5 pl-4">
                 {propostas.map((proposta) => (
@@ -358,7 +363,7 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
         )}
       </div>
 
-      <div
+      {(showProceed || error) && <div
         className="shrink-0 px-6 py-4 border-t space-y-2"
         style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: '#ffffff40' }}
       >
@@ -367,7 +372,7 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
             {error}
           </p>
         )}
-        <div className="flex items-center justify-end">
+        {showProceed && <div className="flex items-center justify-end">
           <button
             type="button"
             onClick={onProceed}
@@ -378,8 +383,8 @@ export const AudienciaDetalhes: React.FC<AudienciaDetalhesProps> = ({
             {proceedDisabled ? 'Aguardando resposta...' : 'Usar essa audiência como fonte'}
             <ArrowRight className="w-4 h-4" />
           </button>
-        </div>
-      </div>
+        </div>}
+      </div>}
     </div>
   );
 };

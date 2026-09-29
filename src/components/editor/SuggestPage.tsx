@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { THEME_COLORS } from '../../constants/colors';
 import { ChatPanel } from './ChatPanel';
@@ -97,6 +97,29 @@ const INITIAL_BRAINSTORM_MESSAGE: ChatMessage = {
   text: 'Me conte qual tema você quer trabalhar — e, se já souber, a série e o tipo de material (plano de aula, roteiro de debate, oficina de redação). Vou buscar as audiências que mais combinam.',
 };
 
+const HTML_AUTO_REDIRECT_COOKIE_PREFIX = 'contraponto_html_redirected_';
+const HTML_AUTO_REDIRECT_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+function htmlAutoRedirectCookieName(sessionId: string): string {
+  return `${HTML_AUTO_REDIRECT_COOKIE_PREFIX}${encodeURIComponent(sessionId)}`;
+}
+
+function hasHtmlAutoRedirected(sessionId: string): boolean {
+  const cookieName = `${htmlAutoRedirectCookieName(sessionId)}=`;
+  return document.cookie
+    .split(';')
+    .some((cookie) => cookie.trim().startsWith(cookieName));
+}
+
+function markHtmlAutoRedirected(sessionId: string): void {
+  document.cookie = [
+    `${htmlAutoRedirectCookieName(sessionId)}=1`,
+    `Max-Age=${HTML_AUTO_REDIRECT_COOKIE_MAX_AGE}`,
+    'Path=/',
+    'SameSite=Lax',
+  ].join('; ');
+}
+
 function truncate(text: string, max = 180): string {
   const normalized = text.trim();
   return normalized.length <= max ? normalized : `${normalized.slice(0, max - 1)}…`;
@@ -189,6 +212,7 @@ export const SuggestPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const urlType = searchParams.get('type') ?? undefined;
+  const isBrainstorm = urlType === 'brainstorm';
 
   const sessionIdParam = searchParams.get('sessionId');
   const audienciaIdParam = searchParams.get('audienciaId');
@@ -240,8 +264,33 @@ export const SuggestPage: React.FC = () => {
     }
   };
 
-  const loadPlanning = async (currentSessionId: string) => {
-    const planning = await api.getWorkflowPlanning<PlanningItem>(currentSessionId);
+  const buildMaterialEditorUrl = useCallback(async (currentSessionId: string): Promise<string> => {
+    let sessionAgent: string | null | undefined;
+    try {
+      sessionAgent = (await api.getWorkflowSession(currentSessionId)).selected_agent;
+    } catch {
+      // O tipo atual da interface serve como fallback se a sessão não puder ser recarregada.
+    }
+
+    const titulo = `${tipoMaterial ?? 'Novo material'}${serie ? ` — ${serie}` : ''}`;
+    const params = new URLSearchParams();
+    params.set('title', titulo);
+    params.set('type', typeFromBackendAgent(sessionAgent) ?? tipoLabelToId(tipoMaterial, urlType));
+    if (serie) params.set('serie', serie);
+    if (detalhe) params.set('audienciaId', detalhe.id);
+    params.set('sessionId', currentSessionId);
+    return `/home/editor/material?${params.toString()}`;
+  }, [detalhe, serie, tipoMaterial, urlType]);
+
+  const loadPlanning = async (currentSessionId: string, retries = 0): Promise<void> => {
+    let planning: PlanningItem[];
+    try {
+      planning = await api.getWorkflowPlanning<PlanningItem>(currentSessionId);
+    } catch (cause) {
+      if (retries <= 0) throw cause;
+      await new Promise((resolve) => window.setTimeout(resolve, 1000));
+      return loadPlanning(currentSessionId, retries - 1);
+    }
     const nextSugestoes = planning.map((item) => ({
       id: String(item.id),
       titulo: item.titulo,
@@ -272,35 +321,23 @@ export const SuggestPage: React.FC = () => {
   }, [sessionId]);
 
   useEffect(() => {
-    if (!sessionId) return undefined;
+    if (!sessionId || !htmlReady || hasHtmlAutoRedirected(sessionId)) return undefined;
 
     let active = true;
-    const checkHtml = async () => {
-      try {
-        const exists = await api.workflowHtmlExists(sessionId);
-        if (active) setHtmlReady(exists);
-      } catch {
-        if (active) setHtmlReady(false);
-      }
-    };
-    const checkVisibleHtml = () => {
-      if (document.visibilityState === 'visible') void checkHtml();
+
+    const redirectToEditor = async () => {
+      const target = await buildMaterialEditorUrl(sessionId);
+      if (!active) return;
+      markHtmlAutoRedirected(sessionId);
+      navigate(target);
     };
 
-    void checkHtml();
-    const intervalId = window.setInterval(checkVisibleHtml, 3000);
-    window.addEventListener('focus', checkVisibleHtml);
-    window.addEventListener('pageshow', checkVisibleHtml);
-    document.addEventListener('visibilitychange', checkVisibleHtml);
+    void redirectToEditor().catch(() => undefined);
 
     return () => {
       active = false;
-      window.clearInterval(intervalId);
-      window.removeEventListener('focus', checkVisibleHtml);
-      window.removeEventListener('pageshow', checkVisibleHtml);
-      document.removeEventListener('visibilitychange', checkVisibleHtml);
     };
-  }, [sessionId]);
+  }, [buildMaterialEditorUrl, htmlReady, navigate, sessionId]);
 
   useEffect(() => {
     let active = true;
@@ -461,11 +498,17 @@ export const SuggestPage: React.FC = () => {
         role: 'assistant',
         text: `${replyText}${confirmacoes.length > 0 ? ` Anotei: ${confirmacoes.join(' + ')}.` : ''}`,
       }]);
-      await Promise.all([
-        loadPlanning(currentSessionId),
-        refreshHtmlReady(currentSessionId),
-      ]);
-      setSessionError(null);
+      try {
+        await Promise.all([
+          loadPlanning(currentSessionId, 10),
+          refreshHtmlReady(currentSessionId),
+        ]);
+        setSessionError(null);
+      } catch (syncCause) {
+        const syncMessage = syncCause instanceof Error ? syncCause.message : 'Falha de conexão';
+        setSessionError(syncMessage);
+        setError('A resposta chegou, mas não foi possível atualizar as audiências automaticamente. Tente novamente em alguns instantes.');
+      }
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Não foi possível conversar com o agente.';
       setSessionError(message);
@@ -477,7 +520,7 @@ export const SuggestPage: React.FC = () => {
   };
 
   const handleProceed = async () => {
-    if (advancing) return;
+    if (isBrainstorm || advancing) return;
     setAdvancing(true);
     // Validação de série/tipo temporariamente desativada para prototipação:
     // o alerta de erro (inline + toast) foi ocultado e o fluxo segue normal.
@@ -533,14 +576,7 @@ export const SuggestPage: React.FC = () => {
       const finalAgent = workflowSession.selected_agent
         ?? backendAgentFromType(tipoLabelToId(tipoMaterial, urlType))
         ?? 'generic';
-      let html = '';
-      try {
-        html = await api.getWorkflowHtml(sessionId);
-      } catch {
-        // O HTML ainda não existe; abaixo pedimos ao agente para gerar ou
-        // explicar no chat quais informações ainda estão faltando.
-      }
-      if (!html) {
+      if (!htmlReady) {
         const generationResponse = await api.sendWorkflowMessage(
           sessionId,
           `${contextoSelecao} Use essa audiência como fonte do material final "${tipoMaterial ?? 'Novo material'}"${serie ? ` para ${serie}` : ''}. Verifique primeiro se há informações indispensáveis faltando. Se estiver tudo completo, gere o HTML completo e salve-o em HTML.html. Se faltar qualquer informação, não gere nem salve o HTML; responda em português informando claramente ao professor o que ele precisa fornecer.`,
@@ -559,14 +595,8 @@ export const SuggestPage: React.FC = () => {
             text: generationReply,
           }]);
         }
-        for (let attempt = 0; attempt < 8 && !html; attempt += 1) {
-          try {
-            html = await api.getWorkflowHtml(sessionId);
-          } catch {
-            await new Promise((resolve) => window.setTimeout(resolve, 1000));
-          }
-        }
-        if (!html) {
+        const generatedHtmlReady = await refreshHtmlReady(sessionId);
+        if (!generatedHtmlReady) {
           setError(
             generationReply
               ? 'O agente identificou informações faltantes. Veja no chat o que precisa ser informado antes de gerar o material.'
@@ -575,22 +605,16 @@ export const SuggestPage: React.FC = () => {
           setAdvancing(false);
           return;
         }
+        markHtmlAutoRedirected(sessionId);
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Não foi possível avançar para o agente final.');
       setAdvancing(false);
       return;
     }
-    // O material ganha um título próprio (editável no editor), não o da audiência.
-    const titulo = `${tipoMaterial ?? 'Novo material'}${serie ? ` — ${serie}` : ''}`;
-    const params = new URLSearchParams();
-    params.set('title', titulo);
-    const sessionAgent = (await api.getWorkflowSession(sessionId)).selected_agent;
-    params.set('type', typeFromBackendAgent(sessionAgent) ?? tipoLabelToId(tipoMaterial, urlType));
-    if (serie) params.set('serie', serie);
-    if (detalhe) params.set('audienciaId', detalhe.id);
-    params.set('sessionId', sessionId);
-    navigate(`/home/editor/material?${params.toString()}`);
+    const target = await buildMaterialEditorUrl(sessionId);
+    markHtmlAutoRedirected(sessionId);
+    navigate(target);
     setAdvancing(false);
   };
 
@@ -641,6 +665,7 @@ export const SuggestPage: React.FC = () => {
             tipoMaterial={tipoMaterial}
             error={error}
             onProceed={handleProceed}
+            showProceed={!isBrainstorm}
             proceedDisabled={advancing || loadingSugestoes || sendingMessage || loadingDetalhe}
             htmlReady={htmlReady}
             onSelectAudiencia={(id) => { void handleSelect(id, true); }}

@@ -31,7 +31,7 @@ export interface WorkflowSessionSummary {
   last_message: string | null;
 }
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8006').replace(/\/$/, '');
+const API_BASE = (import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:8006' : '')).replace(/\/$/, '');
 const TOKEN_KEY = 'contraponto.access_token';
 const USER_KEY = 'contraponto.user';
 
@@ -529,6 +529,6 @@ export async function downloadWorkflowFile(
 
 export function workflowSocketUrl(sessionId: string): string {
   const token = getAccessToken();
-  const base = API_BASE.replace(/^http/, 'ws');
+  const base = new URL(API_BASE || '/', window.location.origin).href.replace(/\/$/, '').replace(/^http/, 'ws');
   return `${base}/api/workflow/sessions/${sessionId}/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 }

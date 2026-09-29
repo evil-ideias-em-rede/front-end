@@ -7,6 +7,7 @@ import {
   Download,
   FileText,
   Plus,
+  Pencil,
   Trash2,
   UsersRound,
 } from 'lucide-react';
@@ -18,6 +19,7 @@ import * as api from '../../api/client';
 import { parseHtmlPages } from '../../utils/htmlLayers';
 import { displayFileTitle } from '../../utils/displayNames';
 import { HtmlPreview } from '../general/HtmlPreview';
+import { EditarMaterialModal } from '../criar/EditarMaterialModal';
 import { CriarMaterialModal } from '../criar/CriarMaterialModal';
 import { ConfirmDeleteModal } from '../criar/ConfirmDeleteModal';
 
@@ -125,9 +127,10 @@ export const MaterialDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
-  const { materiais, turmas, createMaterial, deleteMaterial } = useBackendData();
+  const { materiais, turmas, createMaterial, updateMaterial, deleteMaterial } = useBackendData();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [pdfPreviewHtml, setPdfPreviewHtml] = useState<string | null>(null);
@@ -142,6 +145,8 @@ export const MaterialDetailPage: React.FC = () => {
 
   useEffect(() => {
     setPageIndex(0);
+    setIsEditOpen(false);
+    setIsDeleteOpen(false);
     setDownloadError(null);
   }, [material?.id]);
 
@@ -237,7 +242,7 @@ export const MaterialDetailPage: React.FC = () => {
         onCreate={() => setIsCreateOpen(true)}
       />
 
-      <div className="flex-1 min-w-0 flex flex-col overflow-y-auto">
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
         {/* ========================================================= */}
         {/* HEADER */}
         {/* ========================================================= */}
@@ -250,27 +255,14 @@ export const MaterialDetailPage: React.FC = () => {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-3">
                 <h1
-                  className="text-3xl xl:text-4xl font-black pt-6 tracking-tight"
+                  className="text-3xl xl:text-4xl font-black tracking-tight break-words"
                   style={{ color: THEME_COLORS.textDark }}
                 >
                   {displayFileTitle(material.title)}
                 </h1>
 
 
-                <button
-                  type="button"
-                  onClick={() => setIsDeleteOpen(true)}
-                  aria-label="Excluir material"
-                  title="Excluir material"
-                  className="p-2.5 rounded-xl transition-all hover:scale-105 cursor-pointer border"
-                  style={{
-                    backgroundColor: THEME_COLORS.bgLight,
-                    borderColor: THEME_COLORS.borderLight,
-                    color: '#dc2626',
-                  }}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+
               </div>
 
               {/* Turmas associadas */}
@@ -302,6 +294,19 @@ export const MaterialDetailPage: React.FC = () => {
                 </p>
               )}
             </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <button type="button" onClick={() => setIsEditOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border font-bold text-sm"
+                style={{ color: THEME_COLORS.primary, borderColor: THEME_COLORS.borderLight }}>
+                <Pencil className="w-4 h-4" /> Editar material e turmas
+              </button>
+              <button type="button" onClick={() => setIsDeleteOpen(true)}
+                aria-label="Excluir material" title="Excluir material"
+                className="inline-flex items-center justify-center p-2.5 rounded-xl border text-red-600"
+                style={{ borderColor: THEME_COLORS.borderLight }}>
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -309,11 +314,11 @@ export const MaterialDetailPage: React.FC = () => {
         {/* VISUALIZAÇÃO + DOWNLOADS */}
         {/* ========================================================= */}
 
-        <div className="px-8 lg:px-20 w-full mb-12">
-          <div className="rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-8 lg:px-20 pb-6 w-full flex-1 min-h-0 flex flex-col">
+          <div className="rounded-2xl shadow-sm overflow-hidden flex-1 min-h-0 flex flex-col">
             {/* Toolbar */}
             <div
-              className="px-4 py-3 flex flex-wrap items-center gap-2 border-b"
+              className="px-4 py-3 flex shrink-0 flex-wrap items-center gap-2 border-b"
               style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: THEME_COLORS.bgLight }}
             >
               <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-stone-500 pr-1">
@@ -337,14 +342,14 @@ export const MaterialDetailPage: React.FC = () => {
             </div>
 
             {downloadError && (
-              <p className="border-b border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700">
+              <p className="shrink-0 border-b border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-700">
                 {downloadError}
               </p>
             )}
 
             {pages.length > 1 && (
               <div
-                className="flex items-center justify-center border-b px-4 py-3"
+                className="flex shrink-0 items-center justify-center border-b px-4 py-3"
                 style={{ borderColor: THEME_COLORS.borderLight, backgroundColor: 'rgba(255,255,255,0.45)' }}
               >
                 <div
@@ -383,19 +388,20 @@ export const MaterialDetailPage: React.FC = () => {
             )}
 
             {/* Prévia */}
-            <div className="overflow-auto bg-stone-100 p-6 md:p-10 flex justify-center">
+            <div className="flex-1 min-h-0 overflow-auto overscroll-contain bg-stone-100 p-6 md:p-10 flex">
               {previewContent ? (
-                <div className="shadow-xl shrink-0" style={{ boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
+                <div className="shadow-xl shrink-0 h-full min-h-0 mx-auto" style={{ boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
                   <HtmlPreview
                     html={previewContent}
                     width={isLandscape ? 960 : 794}
-                    height={isLandscape ? 540 : 1123}
+                    height="100%"
                     pageIndex={safePageIndex}
+                    interactive
                   />
                 </div>
               ) : (
                 <div
-                  className="w-[794px] max-w-full shrink-0 flex flex-col items-center justify-center rounded-lg bg-white py-16 px-10 text-center"
+                  className="w-[794px] max-w-full shrink-0 mx-auto self-start flex flex-col items-center justify-center rounded-lg bg-white py-16 px-10 text-center"
                   style={{ boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}
                 >
                   <span
@@ -429,6 +435,16 @@ export const MaterialDetailPage: React.FC = () => {
         />
       )}
 
+
+      {isEditOpen && (
+        <EditarMaterialModal
+          key={material.id}
+          material={material}
+          turmas={turmas}
+          onClose={() => setIsEditOpen(false)}
+          onUpdated={updateMaterial}
+        />
+      )}
 
       {isDeleteOpen && (
         <ConfirmDeleteModal

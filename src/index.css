@@ -355,7 +355,7 @@
 
 /* Todos os botões do núcleo usam a mesma silhueta arredondada da landing. */
 .home-theme button {
-  border-radius: 9999px !important;
+  border-radius: 10px !important;
 }
 
 /* Atalhos de criação e cards acionáveis mantêm sua aparência própria. */
@@ -376,7 +376,7 @@
 .home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[style*="background-color: rgb(255, 0, 68)"],
 .home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[class*="bg-[#7C3AED]"],
 .home-theme button:not(.platform-create-button):not(.platform-shortcut-card):not(.platform-sidebar-button)[class*="bg-[#FF0044]"] {
-  border-radius: 9999px !important;
+  border-radius: 15px !important;
   font-weight: 800 !important;
   letter-spacing: 0.05em;
   text-transform: uppercase;

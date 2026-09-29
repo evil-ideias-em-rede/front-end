@@ -1,32 +1,34 @@
-# React + TypeScript + Vite
+# Contraponto — frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React/TypeScript. A instalação completa inclui o backend e o PostgreSQL.
 
-Currently, two official plugins are available:
+## Instalação Linux com Docker/KVM
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Clone `front-end` e `back-end` da mesma versão em pastas irmãs. Siga
+[as instruções do backend](../back-end/README.md) e rode, dentro de `back-end`:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+bash scripts/install.sh
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+O Dockerfile tem dois modos:
+
+- `production`: build estático servido por Nginx, sem Node/npm no runtime.
+  API e WebSocket passam pelo mesmo endereço da interface. Nenhuma chave de IA
+  deve ser enviada ao build do frontend.
+- `development`: Vite com hot reload; usado pelo compose de desenvolvimento
+  do backend, preservando o fluxo anterior.
+
+## Desenvolvimento sem Docker
+
+```bash
+npm ci
+npm run dev
+```
+
+Configure `VITE_API_URL` em um arquivo local conforme `.env.example`.
+Sem configuração, o modo de desenvolvimento usa `http://localhost:8006`.
+O modo de produção usa a própria origem e precisa do proxy configurado.
+
+`npm run build` verifica TypeScript e gera `dist/`.
+`npm run lint` executa a análise estática.

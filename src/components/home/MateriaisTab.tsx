@@ -749,6 +749,7 @@ export const MateriaisTab: React.FC<MateriaisTabProps> = () => {
                       className="
                         h-36
                         relative
+                        rounded-t-[15px]
                         overflow-hidden
                         shrink-0
                       "

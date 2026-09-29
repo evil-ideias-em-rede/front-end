@@ -183,7 +183,7 @@ export const TurmaDetailPage: React.FC = () => {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-3">
                 <h1 className="text-4xl xl:text-5xl font-black tracking-tight text-white drop-shadow-sm">
-                  {turma.series} - {turma.disciplina}
+                  {turma.series} {turma.idSeries} - {turma.disciplina}
                 </h1>
 
                 <button
@@ -411,7 +411,7 @@ export const TurmaDetailPage: React.FC = () => {
       {isDeleteOpen && turma && (
         <ConfirmDeleteModal
           title="Excluir turma?"
-          message={`Tem certeza que deseja excluir a turma "${turma.series} - ${turma.disciplina}"? Esta ação não pode ser desfeita.`}
+          message={`Tem certeza que deseja excluir a turma "${turma.series} ${turma.idSeries} - ${turma.disciplina}"? Esta ação não pode ser desfeita.`}
           onCancel={() => setIsDeleteOpen(false)}
           loading={isDeleting}
           error={deleteError}
@@ -492,7 +492,7 @@ const TurmasSidebar: React.FC<TurmasSidebarProps> = ({
 
               <span className="min-w-0 flex-1">
                 <span className={`block text-sm font-bold truncate ${isActive ? 'text-white' : ''}`}>
-                  {t.series} - {t.disciplina}
+                  {t.series} {t.idSeries} - {t.disciplina}
                 </span>
                 <span
                   className={`block text-[11px] font-semibold truncate ${

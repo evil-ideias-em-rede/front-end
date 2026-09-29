@@ -645,9 +645,15 @@ export const TurmasTab: React.FC<TurmasTabProps> = () => {
 
                   <div className="p-6 flex flex-col flex-1 space-y-4">
                     <div>
-                      <h3 className="line-clamp-1 text-base font-bold">
-                        {turma.series} - {turma.disciplina}
+                      <h3
+                        className="truncate text-base font-bold"
+                        title={`${turma.series} ${turma.idSeries}`}
+                      >
+                        {turma.series} {turma.idSeries}
                       </h3>
+                      <p className="truncate text-base font-bold" title={turma.disciplina}>
+                        {turma.disciplina}
+                      </p>
                       <p className="line-clamp-1 text-xs font-bold">
                         {turma.school}
                       </p>
@@ -713,7 +719,7 @@ export const TurmasTab: React.FC<TurmasTabProps> = () => {
       {deleteTarget && (
         <ConfirmDeleteModal
           title="Excluir turma?"
-          message={`Tem certeza que deseja excluir a turma "${deleteTarget.series} - ${deleteTarget.disciplina}"? Esta ação não pode ser desfeita.`}
+          message={`Tem certeza que deseja excluir a turma "${deleteTarget.series} ${deleteTarget.idSeries} - ${deleteTarget.disciplina}"? Esta ação não pode ser desfeita.`}
           onCancel={() => setDeleteTarget(null)}
           loading={isDeleting}
           error={deleteError}
