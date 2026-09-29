@@ -9,6 +9,7 @@ import { Toast } from '../general/Toast';
 import * as api from '../../api/client';
 import type { AudienciaDetalhe, AudienciaResumo } from '../../data/mockAudiencias';
 import { startHtmlPresencePolling } from '../../utils/htmlPresencePolling';
+import { rememberViewedAudience, restoreViewedAudience } from '../../utils/viewedAudience';
 
 function parseSerie(text: string): string | null {
   const serieMatch = text.match(/\b([1-9])\s?º?\s?(ano|série|serie)(\s?(do\s?)?(ensino\s?médio|em|fundamental))?/i);
@@ -226,7 +227,6 @@ export const SuggestPage: React.FC = () => {
   const [detalhe, setDetalhe] = useState<AudienciaDetalhe | null>(null);
   const [loadingDetalhe, setLoadingDetalhe] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
-  const [audienceSelectionBusy, setAudienceSelectionBusy] = useState(false);
   const [advancing, setAdvancing] = useState(false);
   const [serie, setSerie] = useState<string | null>(serieParam);
   const [tipoMaterial, setTipoMaterial] = useState<string | null>(() => tipoInicialFromUrl(urlType));
@@ -240,7 +240,7 @@ export const SuggestPage: React.FC = () => {
   const [partialHtmlSession, setPartialHtmlSession] = useState<string | null>(null);
   const [pollingSession, setPollingSession] = useState<string | null>(null);
   const [restoredGenerationPending, setRestoredGenerationPending] = useState(false);
-  const agentPending = sendingMessage || audienceSelectionBusy || advancing;
+  const agentPending = sendingMessage || advancing;
   const agentPendingRef = useRef(agentPending);
   agentPendingRef.current = agentPending;
   const initialHtmlChecks = useRef(new Map<string, Promise<boolean>>());
@@ -401,9 +401,11 @@ export const SuggestPage: React.FC = () => {
           initialHtmlChecks.current.get(sessionIdParam)!,
         ]);
 
-        const audienciaId = audienciaIdParam
-          ?? (session.selected_audience_id ? String(session.selected_audience_id) : null)
-          ?? (planning.length === 1 ? String(planning[0].id) : null);
+        const audienciaId = restoreViewedAudience(sessionIdParam,
+          audienciaIdParam
+            ?? (session.selected_audience_id ? String(session.selected_audience_id) : null)
+            ?? (planning.length === 1 ? String(planning[0].id) : null),
+        );
         const audiencia = audienciaId
           ? await api.getAudiencia<any>(audienciaId)
           : null;
@@ -428,7 +430,7 @@ export const SuggestPage: React.FC = () => {
           titulo: item.titulo,
           resumoCurto: item.resumo ?? '',
         })));
-        setSelectedId(audiencia?.id ? String(audiencia.id) : audienciaIdParam);
+        setSelectedId(audiencia?.id ? String(audiencia.id) : null);
         setDetalhe(audiencia ? normalizeAudiencia(audiencia) : null);
         // HTML parcial após reload não comprova que o agente já respondeu.
         // Mensagens internas (hidden) também podem iniciar uma geração.
@@ -452,68 +454,32 @@ export const SuggestPage: React.FC = () => {
     return () => { active = false; };
   }, [audienciaIdParam, sessionIdParam, serieParam]);
 
-  const handleSelect = async (id: string, notifyAgent = false) => {
-    if (notifyAgent) {
-      if (audienceSelectionBusy || id === selectedId) return;
-      setAudienceSelectionBusy(true);
-    }
+  const handleSelect = async (id: string) => {
+    if (advancing) return;
     const detalheRequestId = ++detalheRequestRef.current;
     setSelectedId(id);
+    rememberViewedAudience(sessionId, id);
     setError(null);
     const sugestao = sugestoes.find((item) => item.id === id);
-    if (sugestao) {
-      // O título e o resumo já estão no card. Mostre-os imediatamente no
-      // centro enquanto os participantes e as falas são carregados.
-      setDetalhe(detalheInicialDaSugestao(sugestao));
-    }
+    setDetalhe(sugestao ? detalheInicialDaSugestao(sugestao) : null);
     setLoadingDetalhe(true);
     try {
-      if (sessionId) {
-        // Persistir a audiência escolhida no sandbox não é uma mensagem para
-        // o agente: é apenas o contexto da seleção feita no card.
-        await api.selectWorkflowPlanningItem(sessionId, id);
-      }
       const audiencia = await api.getAudiencia<any>(id);
       if (detalheRequestId !== detalheRequestRef.current) return;
       const normalized = normalizeAudiencia(audiencia);
       setDetalhe(normalized);
-
-      if (notifyAgent && sessionId) {
-        const selectionMessage = `Escolhi consultar a audiência de ID ${normalized.id}, com o tema "${normalized.titulo}". Ainda não confirmei essa audiência como fonte; estou analisando o resumo e os participantes.`;
-        const mensagemUsuario = [...messages].reverse().find((message) => message.role === 'user')?.text ?? '';
-        const selectionPrompt = `O usuário clicou na audiência de ID ${normalized.id}, título "${normalized.titulo}". Mensagem do usuário: "${mensagemUsuario}". A audiência ainda não foi confirmada como fonte; ajude o usuário a analisar o resumo e os participantes.`;
-        const messageId = `audience-selection-${Date.now()}`;
-        setMessages((prev) => [...prev, {
-          id: messageId,
-          role: 'user',
-          text: selectionMessage,
-        }]);
-
-        const response = await withHtmlPolling(sessionId, () => api.sendWorkflowMessage(sessionId, selectionPrompt, 'brainstorm', true));
-        const replyText = String(response?.message?.content ?? response?.reply ?? '').trim();
-        if (replyText) {
-          setMessages((prev) => [...prev, {
-            id: `${messageId}-reply`,
-            role: 'assistant',
-            text: replyText,
-          }]);
-        }
-        await refreshHtmlReady(sessionId);
-      }
     } catch (cause) {
       if (detalheRequestId !== detalheRequestRef.current) return;
       setError(cause instanceof Error ? cause.message : 'Não foi possível carregar a audiência.');
-      if (notifyAgent) {
-        setSessionError(cause instanceof Error ? cause.message : 'Não foi possível informar o agente sobre a audiência.');
-      }
     } finally {
       if (detalheRequestId === detalheRequestRef.current) setLoadingDetalhe(false);
-      if (notifyAgent) setAudienceSelectionBusy(false);
     }
   };
 
   const handleSend = async (text: string) => {
-    if (sendingMessage) return;
+    if (sendingMessage || advancing) return;
+    // Capture a audiência desta pergunta; navegar durante a resposta é permitido.
+    const viewedAudienceId = selectedId;
 
     const id = `m-${Date.now()}`;
     const foundSerie = parseSerie(text);
@@ -534,7 +500,7 @@ export const SuggestPage: React.FC = () => {
     setMessages((prev) => [...prev, { id, role: 'user', text }]);
     try {
       const currentSessionId = await ensureSession();
-      const response = await withHtmlPolling(currentSessionId, () => api.sendWorkflowMessage(currentSessionId, text, 'brainstorm'));
+      const response = await withHtmlPolling(currentSessionId, () => api.sendWorkflowMessage(currentSessionId, text, 'brainstorm', false, viewedAudienceId));
       const replyText = String(response?.message?.content ?? response?.reply ?? 'Recebi sua mensagem.');
       setMessages((prev) => [...prev, {
         id: `${id}-r`,
@@ -563,7 +529,7 @@ export const SuggestPage: React.FC = () => {
   };
 
   const handleProceed = async () => {
-    if (isBrainstorm || advancing) return;
+    if (isBrainstorm || advancing || sendingMessage || loadingDetalhe) return;
     setAdvancing(true);
     // Validação de série/tipo temporariamente desativada para prototipação:
     // o alerta de erro (inline + toast) foi ocultado e o fluxo segue normal.
@@ -689,12 +655,10 @@ export const SuggestPage: React.FC = () => {
             <AudienciaList
               items={sugestoes}
               selectedId={selectedId}
-              // A seleção do card também informa ao agente qual audiência foi escolhida.
-              onSelect={(id) => { void handleSelect(id, true); }}
+              onSelect={(id) => { void handleSelect(id); }}
               loading={loadingSugestoes}
-              // A troca de card continua livre; bloqueie somente durante uma
-              // mensagem do chat ou o avanço pelo botão de confirmação.
-              disabled={audienceSelectionBusy || sendingMessage || advancing}
+              // Somente a confirmação da fonte bloqueia a navegação.
+              disabled={advancing}
             />
           </div>
         </div>
@@ -712,7 +676,7 @@ export const SuggestPage: React.FC = () => {
             generatingDocument={!htmlReady && ((agentPending && partialHtmlSession === sessionId) || restoredGenerationPending)}
             proceedDisabled={agentPending || restoredGenerationPending || loadingSugestoes || loadingDetalhe}
             htmlReady={htmlReady}
-            onSelectAudiencia={(id) => { void handleSelect(id, true); }}
+            onSelectAudiencia={(id) => { void handleSelect(id); }}
           />
         </div>
 
@@ -723,11 +687,15 @@ export const SuggestPage: React.FC = () => {
           placeholder="Pergunte ao Contraponto..."
           contextLabel="Fontes primárias — audiências"
           contextIcon="document"
-          busy={advancing || sendingMessage || audienceSelectionBusy}
+          busy={advancing || sendingMessage}
           selectionLabel={detalhe?.titulo}
           onClearSelection={() => {
+            if (advancing) return;
+            ++detalheRequestRef.current;
+            rememberViewedAudience(sessionId, null);
             setSelectedId(null);
             setDetalhe(null);
+            setLoadingDetalhe(false);
           }}
         />
       </div>

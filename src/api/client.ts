@@ -346,10 +346,11 @@ export async function sendWorkflowMessage(
   text: string,
   agent_name: string,
   hidden = false,
+  viewedAudienceId?: string | null,
 ): Promise<any> {
   return request(`/api/workflow/sessions/${sessionId}/messages`, {
     method: 'POST',
-    body: JSON.stringify({ text, agent_name, hidden }),
+    body: JSON.stringify({ text, agent_name, hidden, viewed_audience_id: viewedAudienceId }),
   });
 }
 
