@@ -8,6 +8,7 @@ import { AudienciaDetalhes } from './AudienciaDetalhes';
 import { Toast } from '../general/Toast';
 import * as api from '../../api/client';
 import type { AudienciaDetalhe, AudienciaResumo } from '../../data/mockAudiencias';
+import { startHtmlPresencePolling } from '../../utils/htmlPresencePolling';
 
 function parseSerie(text: string): string | null {
   const serieMatch = text.match(/\b([1-9])\s?º?\s?(ano|série|serie)(\s?(do\s?)?(ensino\s?médio|em|fundamental))?/i);
@@ -236,6 +237,35 @@ export const SuggestPage: React.FC = () => {
   const [sessionError, setSessionError] = useState<string | null>(null);
   const creatingSession = useRef<Promise<string> | null>(null);
   const detalheRequestRef = useRef(0);
+  const [partialHtmlSession, setPartialHtmlSession] = useState<string | null>(null);
+  const [pollingSession, setPollingSession] = useState<string | null>(null);
+  const [restoredGenerationPending, setRestoredGenerationPending] = useState(false);
+  const agentPending = sendingMessage || audienceSelectionBusy || advancing;
+  const agentPendingRef = useRef(agentPending);
+  agentPendingRef.current = agentPending;
+  const initialHtmlChecks = useRef(new Map<string, Promise<boolean>>());
+
+  useEffect(() => {
+    if (!pollingSession || pollingSession !== sessionId || isBrainstorm || htmlReady || hasHtmlAutoRedirected(pollingSession)) return;
+    return startHtmlPresencePolling(
+      () => api.workflowHtmlExists(pollingSession),
+      () => setPartialHtmlSession(pollingSession),
+    );
+  }, [sessionId, pollingSession, isBrainstorm, htmlReady]);
+
+  const withHtmlPolling = async <T,>(currentSessionId: string, request: () => Promise<T>): Promise<T> => {
+    setPartialHtmlSession(null);
+    setRestoredGenerationPending(false);
+    if (!isBrainstorm && !htmlReady && !hasHtmlAutoRedirected(currentSessionId)) {
+      setPollingSession(currentSessionId);
+    }
+    try {
+      return await request();
+    } finally {
+      // Para assim que a resposta chega (ou falha), antes da confirmação final.
+      setPollingSession(null);
+    }
+  };
 
   const ensureSession = async (): Promise<string> => {
     if (sessionId) return sessionId;
@@ -321,7 +351,7 @@ export const SuggestPage: React.FC = () => {
   }, [sessionId]);
 
   useEffect(() => {
-    if (!sessionId || !htmlReady || hasHtmlAutoRedirected(sessionId)) return undefined;
+    if (!sessionId || isBrainstorm || agentPending || !htmlReady || hasHtmlAutoRedirected(sessionId)) return undefined;
 
     let active = true;
 
@@ -337,7 +367,7 @@ export const SuggestPage: React.FC = () => {
     return () => {
       active = false;
     };
-  }, [buildMaterialEditorUrl, htmlReady, navigate, sessionId]);
+  }, [buildMaterialEditorUrl, htmlReady, navigate, sessionId, isBrainstorm, agentPending]);
 
   useEffect(() => {
     let active = true;
@@ -345,6 +375,8 @@ export const SuggestPage: React.FC = () => {
     if (!sessionIdParam) {
       setSessionId(null);
       setHtmlReady(false);
+      setPartialHtmlSession(null);
+      setRestoredGenerationPending(false);
       setMessages([INITIAL_BRAINSTORM_MESSAGE]);
       setSugestoes([]);
       setSelectedId(null);
@@ -359,10 +391,14 @@ export const SuggestPage: React.FC = () => {
 
     const restoreSession = async () => {
       try {
+        // Uma consulta inicial, inclusive no replay de efeitos do StrictMode.
+        if (!initialHtmlChecks.current.has(sessionIdParam)) {
+          initialHtmlChecks.current.set(sessionIdParam, api.workflowHtmlExists(sessionIdParam).catch(() => false));
+        }
         const [session, planning, restoredHtmlReady] = await Promise.all([
           api.getWorkflowSession(sessionIdParam),
           api.getWorkflowPlanning<PlanningItem>(sessionIdParam),
-          api.workflowHtmlExists(sessionIdParam).catch(() => false),
+          initialHtmlChecks.current.get(sessionIdParam)!,
         ]);
 
         const audienciaId = audienciaIdParam
@@ -394,7 +430,14 @@ export const SuggestPage: React.FC = () => {
         })));
         setSelectedId(audiencia?.id ? String(audiencia.id) : audienciaIdParam);
         setDetalhe(audiencia ? normalizeAudiencia(audiencia) : null);
-        setHtmlReady(restoredHtmlReady);
+        // HTML parcial após reload não comprova que o agente já respondeu.
+        // Mensagens internas (hidden) também podem iniciar uma geração.
+        const lastTurn = [...session.messages].reverse().find((message) => message.role === 'user' || message.role === 'assistant');
+        const waitingForReply = lastTurn?.role === 'user' && !hasHtmlAutoRedirected(sessionIdParam);
+        if (!agentPendingRef.current) {
+          setHtmlReady(restoredHtmlReady && !waitingForReply);
+          setRestoredGenerationPending(restoredHtmlReady && waitingForReply);
+        }
         setSessionError(null);
       } catch (cause) {
         if (active) {
@@ -446,7 +489,7 @@ export const SuggestPage: React.FC = () => {
           text: selectionMessage,
         }]);
 
-        const response = await api.sendWorkflowMessage(sessionId, selectionPrompt, 'brainstorm', true);
+        const response = await withHtmlPolling(sessionId, () => api.sendWorkflowMessage(sessionId, selectionPrompt, 'brainstorm', true));
         const replyText = String(response?.message?.content ?? response?.reply ?? '').trim();
         if (replyText) {
           setMessages((prev) => [...prev, {
@@ -491,7 +534,7 @@ export const SuggestPage: React.FC = () => {
     setMessages((prev) => [...prev, { id, role: 'user', text }]);
     try {
       const currentSessionId = await ensureSession();
-      const response = await api.sendWorkflowMessage(currentSessionId, text, 'brainstorm');
+      const response = await withHtmlPolling(currentSessionId, () => api.sendWorkflowMessage(currentSessionId, text, 'brainstorm'));
       const replyText = String(response?.message?.content ?? response?.reply ?? 'Recebi sua mensagem.');
       setMessages((prev) => [...prev, {
         id: `${id}-r`,
@@ -540,7 +583,7 @@ export const SuggestPage: React.FC = () => {
       // A consulta do card é local. A confirmação é que grava a audiência no
       // sandbox, criando audiencia.json para a validação do backend.
       await api.selectWorkflowPlanningItem(sessionId, detalhe.id);
-      const result = await api.advanceWorkflow(sessionId);
+      const result = await withHtmlPolling(sessionId, () => api.advanceWorkflow(sessionId));
       if (!result.allowed) {
         const advanceReply = typeof result.message === 'object' && result.message
           ? String(
@@ -577,12 +620,12 @@ export const SuggestPage: React.FC = () => {
         ?? backendAgentFromType(tipoLabelToId(tipoMaterial, urlType))
         ?? 'generic';
       if (!htmlReady) {
-        const generationResponse = await api.sendWorkflowMessage(
+        const generationResponse = await withHtmlPolling(sessionId, () => api.sendWorkflowMessage(
           sessionId,
           `${contextoSelecao} Use essa audiência como fonte do material final "${tipoMaterial ?? 'Novo material'}"${serie ? ` para ${serie}` : ''}. Verifique primeiro se há informações indispensáveis faltando. Se estiver tudo completo, gere o HTML completo e salve-o em HTML.html. Se faltar qualquer informação, não gere nem salve o HTML; responda em português informando claramente ao professor o que ele precisa fornecer.`,
           finalAgent,
           true,
-        );
+        ));
         const generationReply = String(
           generationResponse?.message?.content
             ?? generationResponse?.reply
@@ -666,7 +709,8 @@ export const SuggestPage: React.FC = () => {
             error={error}
             onProceed={handleProceed}
             showProceed={!isBrainstorm}
-            proceedDisabled={advancing || loadingSugestoes || sendingMessage || loadingDetalhe}
+            generatingDocument={!htmlReady && ((agentPending && partialHtmlSession === sessionId) || restoredGenerationPending)}
+            proceedDisabled={agentPending || restoredGenerationPending || loadingSugestoes || loadingDetalhe}
             htmlReady={htmlReady}
             onSelectAudiencia={(id) => { void handleSelect(id, true); }}
           />

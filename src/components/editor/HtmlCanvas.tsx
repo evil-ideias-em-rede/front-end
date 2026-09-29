@@ -188,7 +188,7 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
             <button
               type="button"
               onClick={() => onPageChange(Math.max(0, pageIndex - 1))}
-              disabled={pageIndex === 0}
+              disabled={navigationLocked || pageIndex === 0}
               className="p-1.5 rounded-lg hover:bg-black/[0.04] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
               style={{ color: THEME_COLORS.gray }}
               title="Página anterior"
@@ -201,7 +201,7 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
             <button
               type="button"
               onClick={() => onPageChange(Math.min(pageCount - 1, pageIndex + 1))}
-              disabled={pageIndex === pageCount - 1}
+              disabled={navigationLocked || pageIndex === pageCount - 1}
               className="p-1.5 rounded-lg hover:bg-black/[0.04] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
               style={{ color: THEME_COLORS.gray }}
               title="Próxima página"
@@ -332,9 +332,10 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
       />
 
       {/* Canvas area */}
-      <div ref={containerRef} className="flex-1 min-h-0 overflow-auto bg-stone-100 relative">
+      <div className="relative flex-1 min-h-0 bg-stone-100">
+      <div ref={containerRef} className="h-full overflow-auto">
         <div
-          className="min-h-full min-w-full flex justify-center p-6"
+          className={`min-h-full min-w-full flex justify-center py-6 ${pageCount > 1 ? 'px-14' : 'px-6'}`}
           style={{ width: 'fit-content' }}
           onClick={() => onSelectById(null)}
         >
@@ -367,6 +368,33 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
             />
           </div>
         </div>
+      </div>
+      {pageCount > 1 && (
+        <nav aria-label="Navegação lateral de páginas" className="pointer-events-none absolute inset-x-2 top-1/2 z-10 flex -translate-y-1/2 justify-between">
+          <button
+            type="button"
+            aria-label="Página anterior"
+            title="Página anterior"
+            onClick={() => onPageChange(Math.max(0, pageIndex - 1))}
+            disabled={navigationLocked || pageIndex === 0}
+            className="pointer-events-auto flex h-11 w-10 items-center justify-center rounded-full border bg-white/95 shadow-md cursor-pointer transition-colors hover:bg-purple-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600 disabled:opacity-35 disabled:cursor-not-allowed"
+            style={{ color: THEME_COLORS.primary, borderColor: THEME_COLORS.borderLight }}
+          >
+            <ChevronLeft className="h-6 w-6" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label="Próxima página"
+            title="Próxima página"
+            onClick={() => onPageChange(Math.min(pageCount - 1, pageIndex + 1))}
+            disabled={navigationLocked || pageIndex === pageCount - 1}
+            className="pointer-events-auto flex h-11 w-10 items-center justify-center rounded-full border bg-white/95 shadow-md cursor-pointer transition-colors hover:bg-purple-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600 disabled:opacity-35 disabled:cursor-not-allowed"
+            style={{ color: THEME_COLORS.primary, borderColor: THEME_COLORS.borderLight }}
+          >
+            <ChevronRight className="h-6 w-6" aria-hidden="true" />
+          </button>
+        </nav>
+      )}
       </div>
     </div>
   );
