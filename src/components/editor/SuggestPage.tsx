@@ -233,6 +233,8 @@ export const SuggestPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(sessionIdParam);
+  const [restoringSession, setRestoringSession] = useState(Boolean(sessionIdParam));
+  const createdSessionId = useRef<string | null>(null);
   const [htmlReady, setHtmlReady] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const creatingSession = useRef<Promise<string> | null>(null);
@@ -272,6 +274,9 @@ export const SuggestPage: React.FC = () => {
     if (!creatingSession.current) {
       creatingSession.current = api.createWorkflowSession(backendAgentFromType(urlType))
         .then((session) => {
+          // A URL passa a identificar a conversa que já está aberta localmente.
+          // Restaurá-la agora poderia trocar o prompt por um histórico ainda vazio.
+          createdSessionId.current = session.id;
           setSessionId(session.id);
           const params = new URLSearchParams(searchParams);
           params.set('sessionId', session.id);
@@ -373,6 +378,8 @@ export const SuggestPage: React.FC = () => {
     let active = true;
 
     if (!sessionIdParam) {
+      createdSessionId.current = null;
+      setRestoringSession(false);
       setSessionId(null);
       setHtmlReady(false);
       setPartialHtmlSession(null);
@@ -386,7 +393,13 @@ export const SuggestPage: React.FC = () => {
     }
 
     setSessionId(sessionIdParam);
+    if (createdSessionId.current === sessionIdParam) {
+      setRestoringSession(false);
+      return () => { active = false; };
+    }
+    createdSessionId.current = null;
     setSerie(serieParam);
+    setRestoringSession(true);
     setLoadingSugestoes(true);
 
     const restoreSession = async () => {
@@ -446,7 +459,10 @@ export const SuggestPage: React.FC = () => {
           setSessionError(cause instanceof Error ? cause.message : 'Não foi possível retomar a sessão.');
         }
       } finally {
-        if (active) setLoadingSugestoes(false);
+        if (active) {
+          setLoadingSugestoes(false);
+          setRestoringSession(false);
+        }
       }
     };
 
@@ -477,7 +493,7 @@ export const SuggestPage: React.FC = () => {
   };
 
   const handleSend = async (text: string) => {
-    if (sendingMessage || advancing) return;
+    if (sendingMessage || advancing || restoringSession) return;
     // Capture a audiência desta pergunta; navegar durante a resposta é permitido.
     const viewedAudienceId = selectedId;
 
@@ -529,7 +545,7 @@ export const SuggestPage: React.FC = () => {
   };
 
   const handleProceed = async () => {
-    if (isBrainstorm || advancing || sendingMessage || loadingDetalhe) return;
+    if (isBrainstorm || advancing || sendingMessage || loadingDetalhe || restoringSession) return;
     setAdvancing(true);
     // Validação de série/tipo temporariamente desativada para prototipação:
     // o alerta de erro (inline + toast) foi ocultado e o fluxo segue normal.
@@ -684,10 +700,11 @@ export const SuggestPage: React.FC = () => {
         <ChatPanel
           messages={messages}
           onSend={handleSend}
-          placeholder="Pergunte ao Contraponto..."
+          placeholder={restoringSession ? 'Carregando conversa...' : 'Pergunte ao Contraponto...'}
           contextLabel="Fontes primárias — audiências"
           contextIcon="document"
           busy={advancing || sendingMessage}
+          disabled={restoringSession}
           selectionLabel={detalhe?.titulo}
           onClearSelection={() => {
             if (advancing) return;

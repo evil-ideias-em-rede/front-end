@@ -82,18 +82,19 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   let response: Response | undefined;
   let networkError: unknown;
-  // O backend pode levar alguns segundos para ficar disponível depois de um
-  // rebuild/restart do Docker. Repetimos somente falhas de rede transitórias.
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  // Só leituras podem ser repetidas: uma falha de rede após um POST não
+  // significa que a mensagem deixou de ser salva ou a geração não começou.
+  const attempts = ['GET', 'HEAD'].includes((init.method ?? 'GET').toUpperCase()) ? 3 : 1;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
       response = await fetch(`${API_BASE}${path}`, { ...init, headers });
       break;
     } catch (error) {
       networkError = error;
-      if (attempt < 2) await new Promise((resolve) => window.setTimeout(resolve, 700 * (attempt + 1)));
+      if (attempt < attempts - 1) await new Promise((resolve) => window.setTimeout(resolve, 700 * (attempt + 1)));
     }
   }
-  if (!response) throw networkError instanceof Error ? networkError : new Error('Não foi possível conectar ao servidor.');
+  if (!response) throw new Error('Não foi possível conectar ao servidor. Confira a conexão e tente novamente.', { cause: networkError });
   const contentType = response.headers.get('content-type') ?? '';
   // DELETE endpoints respondem 204 sem corpo. Nunca tente fazer JSON.parse
   // nesse caso, pois a exclusão já foi concluída no backend.

@@ -20,6 +20,7 @@ interface ChatPanelProps {
   selectionLabel?: string;
   onClearSelection?: () => void;
   busy?: boolean;
+  disabled?: boolean;
 }
 
 // Alguns prompts usam tags internas para separar análise, edição e pedido de
@@ -37,6 +38,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   selectionLabel,
   onClearSelection,
   busy = false,
+  disabled = false,
 }) => {
   const [draft, setDraft] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -46,14 +48,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const previousMessagesLengthRef = useRef(0);
 
   // Ao entrar em uma seção, mostra as mensagens mais recentes uma única vez.
-  // Não acompanha cada nova mensagem para não roubar a posição manual do usuário.
+  // Novos envios também precisam ficar visíveis, inclusive enquanto a resposta demora.
   useEffect(() => {
     if (messages.length === 0) return;
     const isInitialLoad = !initialScrollDoneRef.current;
-    const receivedAssistantMessage =
-      messages.length > previousMessagesLengthRef.current
-      && messages[messages.length - 1]?.role === 'assistant';
-    if (!isInitialLoad && !receivedAssistantMessage) {
+    const receivedMessage = messages.length > previousMessagesLengthRef.current;
+    if (!isInitialLoad && !receivedMessage) {
       previousMessagesLengthRef.current = messages.length;
       return;
     }
@@ -85,7 +85,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const text = draft.trim();
-    if (!text || busy) return;
+    if (!text || busy || disabled) return;
     onSend(text);
     setDraft('');
     setIsTyping(true);
@@ -182,7 +182,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               <button
                 type="button"
                 onClick={onClearSelection}
-                disabled={busy}
+                disabled={busy || disabled}
                 className="w-4 h-4 rounded-full flex items-center justify-center text-stone-400 hover:bg-black/[0.06] hover:text-stone-600 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
                 title="Desselecionar"
               >
@@ -198,7 +198,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           <textarea
             ref={textareaRef}
             value={draft}
-            disabled={busy}
+            disabled={busy || disabled}
             onChange={(e) => setDraft(e.target.value)}
             placeholder={placeholder}
             rows={1}
@@ -213,7 +213,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           />
           <button
             type="submit"
-            disabled={!draft.trim() || busy}
+            disabled={!draft.trim() || busy || disabled}
             className="w-9 h-9 rounded-xl place-self-end flex items-center justify-center text-white transition-all cursor-pointer disabled:opacity-40 disabled:cursor-default"
             style={{ backgroundColor: THEME_COLORS.primary }}
           >
