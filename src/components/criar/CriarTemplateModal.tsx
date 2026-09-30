@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { THEME_COLORS } from '../../constants/colors';
 import type { Turma, Template } from '../../types';
+import { displayFileTitle, keepOriginalFileExtension } from '../../utils/displayNames';
 import { BaseModal } from './BaseModal';
 
 interface CriarTemplateModalProps {
@@ -46,7 +47,7 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
     const file = e.target.files?.[0];
     const f = file?.name ?? '';
     setFileName(f);
-    setName(f);
+    setName(displayFileTitle(f));
     setFileContent('');
     if (file) {
       const selectedFile = file;
@@ -58,14 +59,15 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !fileName || !fileContent || saving) return;
+    const templateName = displayFileTitle(name.trim()).trim();
+    if (!templateName || !fileName || !fileContent || saving) return;
 
     setSaving(true);
     setError('');
     try {
       await onCreated({
         id: crypto.randomUUID(),
-        title: name.trim(),
+        title: keepOriginalFileExtension(templateName, 'template.html'),
         qtd: selectedIds.length,
         htmlContent: '',
         fileName: fileName || undefined,
@@ -105,7 +107,7 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
           </h3>
 
           <p className="text-xs font-semibold text-stone-500">
-            {fileName}
+            {displayFileTitle(name.trim())}
             {selectedIds.length > 0
               ? ` • ${selectedIds.length} ${
                   selectedIds.length === 1
@@ -158,20 +160,25 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
               <input type="file" accept=".html,.htm,.pdf" className="hidden" onChange={handleFile} />
             </label>
             <div className="mt-3">
-              <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: THEME_COLORS.textDark }}>
+              <label htmlFor="template-name" className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: THEME_COLORS.textDark }}>
                 Nome do template (nome do arquivo)
               </label>
               <input
+                id="template-name"
                 type="text"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder="O nome aparecerá após selecionar o arquivo"
+                aria-describedby="template-name-hint"
                 className="w-full px-4 py-2.5 rounded-xl text-sm border bg-white/50 focus:outline-none"
                 style={{
                   borderColor: THEME_COLORS.borderLight,
                   color: THEME_COLORS.textDark,
                 }}
               />
+              <p id="template-name-hint" className="mt-1 text-xs text-stone-500">
+                Será salvo como HTML (.html). Não é necessário informar a extensão.
+              </p>
             </div>
             {error && (
               <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
@@ -264,7 +271,7 @@ export const CriarTemplateModal: React.FC<CriarTemplateModalProps> = ({
               type="submit"
               className="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white shadow-sm transition-all hover:scale-105 cursor-pointer"
               style={{ backgroundColor: THEME_COLORS.primary }}
-              disabled={!name.trim() || !fileName || !fileContent || saving}
+              disabled={!displayFileTitle(name.trim()).trim() || !fileName || !fileContent || saving}
             >
               {saving ? 'Salvando...' : 'Criar Template'}
             </button>
