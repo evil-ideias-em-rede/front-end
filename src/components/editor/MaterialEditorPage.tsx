@@ -329,48 +329,25 @@ export const MaterialEditorPage: React.FC = () => {
     }
   };
 
-  const handleExportTemplate = async (format: 'html' | 'pdf' | 'docx') => {
-    if (!templateId) return;
-
+  const handleExportFile = async (format: 'html' | 'pdf' | 'docx') => {
     try {
       setBackendError(null);
       setExportingFormat(format);
       if (activeSessionId) {
-        // Mantém a mesma base de nome usada na exportação do detalhe do
-        // template (sem deixar HTML.html escapar para o download).
         await api.downloadWorkflowFile(
           activeSessionId,
           html,
           format,
           savedTemplate?.fileName || documentTitle,
+          orientation,
         );
-      } else {
+      } else if (templateId) {
         await api.downloadTemplateFile(templateId, format);
+      } else {
+        throw new Error('Salve o material em uma sessão antes de exportar.');
       }
     } catch (cause) {
       setBackendError(cause instanceof Error ? cause.message : `Não foi possível exportar como ${format.toUpperCase()}.`);
-    } finally {
-      setExportingFormat(null);
-    }
-  };
-
-  const handleExportPdf = async () => {
-    if (templateId) {
-      await handleExportTemplate('pdf');
-      return;
-    }
-
-    if (!activeSessionId) {
-      setBackendError('Salve o material em uma sessão antes de exportar o PDF.');
-      return;
-    }
-
-    try {
-      setBackendError(null);
-      setExportingFormat('pdf');
-      await api.downloadWorkflowPdf(activeSessionId, html, orientation);
-    } catch (cause) {
-      setBackendError(cause instanceof Error ? cause.message : 'Não foi possível exportar o PDF.');
     } finally {
       setExportingFormat(null);
     }
@@ -451,8 +428,8 @@ export const MaterialEditorPage: React.FC = () => {
           onBack={handleBack}
           navigationLocked={llmBusy}
           backDisabled={Boolean(templateId) || !activeSessionId}
-          onExportHtml={templateId ? () => void handleExportTemplate('html') : undefined}
-          onExportDocx={templateId ? () => void handleExportTemplate('docx') : undefined}
+          onExportHtml={() => void handleExportFile('html')}
+          onExportDocx={() => void handleExportFile('docx')}
           onExportPptx={materialType === 'slides' ? () => void handleExportPptx() : undefined}
           exportingFormat={exportingFormat}
           title={documentTitle}
@@ -465,7 +442,7 @@ export const MaterialEditorPage: React.FC = () => {
           onPageChange={handlePageChange}
           orientation={orientation}
           isSlides={materialType === 'slides'}
-          onExportPdf={() => void handleExportPdf()}
+          onExportPdf={() => void handleExportFile('pdf')}
           exportingPdf={exportingFormat === 'pdf'}
           serverRevision={serverRevision}
           onDelete={

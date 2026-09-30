@@ -491,6 +491,7 @@ export async function downloadWorkflowFile(
   html: string,
   format: WorkflowDownloadFormat,
   filename: string,
+  orientation: 'V' | 'H' = 'V',
 ): Promise<void> {
   const form = new FormData();
   form.append('file', new File([html], 'HTML.html', { type: 'text/html' }));
@@ -500,7 +501,7 @@ export async function downloadWorkflowFile(
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
   const response = await fetch(
-    `${API_BASE}/api/workflow/sessions/${encodeURIComponent(sessionId)}/download?format=${format}&filename=${encodeURIComponent(filename)}`,
+    `${API_BASE}/api/workflow/sessions/${encodeURIComponent(sessionId)}/download?format=${format}&filename=${encodeURIComponent(filename)}&orientation=${orientation}`,
     { method: 'POST', headers, body: form },
   );
   if (!response.ok) {

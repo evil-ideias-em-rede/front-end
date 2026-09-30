@@ -295,7 +295,7 @@ export const HtmlCanvas: React.FC<HtmlCanvasProps> = ({
                       if (id === 'docx') onExportDocx?.();
                       if (id === 'pptx') onExportPptx?.();
                     }}
-                    disabled={id === 'pdf' ? exportingPdf : exportingFormat === id}
+                    disabled={exportingPdf || exportingFormat !== null}
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold transition-colors hover:bg-black/[0.04] cursor-pointer"
                     style={{ color: THEME_COLORS.textDark }}
                     title={`Exportar como ${label}`}
