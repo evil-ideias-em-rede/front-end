@@ -2,6 +2,25 @@
 
 React/TypeScript. A instalação completa inclui o backend e o PostgreSQL.
 
+## Arquitetura
+
+O diagrama mostra a comunicação entre frontend, API, agente, ferramentas,
+fontes de dados e sandbox de execução.
+
+![Arquitetura frontend/backend do Contraponto](docs/arquitetura-front-back.svg)
+
+### Agente LangGraph
+
+Grafo exportado diretamente com `GRAPH_BUILDER.get_graph().draw_mermaid()`.
+As setas condicionais mostram os destinos declarados; durante a execução,
+o roteamento escolhe o caminho conforme o estado da conversa.
+
+![Grafo do agente Contraponto gerado pelo LangGraph](docs/agente-langgraph-gerado.svg)
+
+As figuras são cópias dos SVGs de `back-end/docs`. Consulte a
+[documentação da arquitetura no backend](https://github.com/evil-ideias-em-rede/back-end/blob/microsandbox/docs/arquitetura-contraponto.md)
+para os endpoints, os dados enviados e as ferramentas disponíveis em cada modo.
+
 ## Instalação Linux com Docker/KVM
 
 Clone `front-end` e `back-end` da mesma versão em pastas irmãs. Siga
