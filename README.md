@@ -1,3 +1,9 @@
+# Link para acessar a Plataforma:
+
+# <a href="https://evil-levi.01424210.xyz/" target="_blank" rel="noopener" style="font-size: 24px;">Clique aqui para acessar o link para a plataforma:</a>
+
+# https://evil-levi.01424210.xyz/
+
 # Contraponto — frontend
 
 React/TypeScript. A instalação completa inclui o backend e o PostgreSQL.
